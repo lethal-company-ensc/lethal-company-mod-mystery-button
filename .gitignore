@@ -1,0 +1,17 @@
+# library files
+/Libraries/*
+
+# build files
+bin/
+obj/
+
+.idea/
+
+# pack files
+/dist/*
+
+# user files
+/*.user
+
+# keep files
+!**/.keep
