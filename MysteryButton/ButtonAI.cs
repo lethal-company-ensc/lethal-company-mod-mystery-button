@@ -247,6 +247,7 @@ namespace MysteryButton
             foreach (GrabbableObject batteryObject in batteryObjects)
             {
                 batteryObject.insertedBattery.charge = 1f;
+                batteryObject.insertedBattery.empty = false;
             }
         }
         
