@@ -13,6 +13,8 @@ namespace MysteryButton
     {
         private static int cpt = 0;
 
+        private static bool IS_TEST = false;
+
         internal static ManualLogSource logger = Logger.CreateLogSource("Elirasza.MysteryButton.ButtonAI");
 
         private Random rng;
@@ -68,7 +70,20 @@ namespace MysteryButton
 
         private void DoBonusEffect(PlayerControllerB player)
         {
-            // Do nothing
+            int effect = rng.Next(0, 100);
+            logger.LogInfo("Bonus effect=" + effect);
+
+            if (IS_TEST)
+            {
+                ChargeAllBatteriesServerRpc();
+            }
+            else
+            {
+                if (effect < 50)
+                {
+                    ChargeAllBatteriesServerRpc();
+                }
+            }
         }
 
         private void DoMalusEffect(PlayerControllerB player)
@@ -76,28 +91,40 @@ namespace MysteryButton
             int effect = rng.Next(0, 100);
             logger.LogInfo("Malus effect=" + effect);
 
-            if (effect < 45)
+            if (IS_TEST)
             {
-                PlayerDrunkServerRpc();
-            }
-            else if (effect < 50)
-            {
-                RandomPlayerIncreaseInsanityServerRpc();
+                DischargeAllBatteriesServerRpc();
             }
             else
             {
-                int open = rng.Next(0, 100);
-                if (open < 50)
+                if (effect < 45)
                 {
-                    OpenAllDoorsServerRpc(player.name);
+                    PlayerDrunkServerRpc();
+                }
+                else if (effect < 50)
+                {
+                    RandomPlayerIncreaseInsanityServerRpc();
+                }
+                else if (effect < 70)
+                {
+                    DischargeAllBatteriesServerRpc();
                 }
                 else
                 {
-                    CloseAllDoorsServerRpc(player.name);
+                    int open = rng.Next(0, 100);
+                    if (open < 50)
+                    {
+                        OpenAllDoorsServerRpc(player.name);
+                    }
+                    else
+                    {
+                        CloseAllDoorsServerRpc(player.name);
+                    }
                 }
             }
         }
 
+        #region KillEnemy
         [ServerRpc(RequireOwnership = false)]
         public void KillEnemyServerRpc()
         {
@@ -110,7 +137,9 @@ namespace MysteryButton
             logger.LogInfo("ButtonAI::KillEnemyClientRpc");
             KillEnemy(true);
         }
+        #endregion KillEnemy
 
+        #region PlayerDrunk
         [ServerRpc(RequireOwnership = false)]
         void PlayerDrunkServerRpc()
         {
@@ -130,7 +159,9 @@ namespace MysteryButton
                 }
             }
         }
+        #endregion PlayerDrunk
 
+        #region RandomPlayerIncreaseInsanity
         [ServerRpc(RequireOwnership = false)]
         void RandomPlayerIncreaseInsanityServerRpc()
         {
@@ -149,7 +180,9 @@ namespace MysteryButton
                 logger.LogInfo("Client: Apply max insanity to " + player.playerUsername);
             }
         }
+        #endregion RandomPlayerIncreaseInsanity
 
+        #region OpenAllDoors
         [ServerRpc(RequireOwnership = false)]
         void OpenAllDoorsServerRpc(string name)
         {
@@ -172,7 +205,9 @@ namespace MysteryButton
                 }
             }
         }
+        #endregion OpenAllDoors
 
+        #region CloseAllDoors
         [ServerRpc(RequireOwnership = false)]
         void CloseAllDoorsServerRpc(string name)
         {
@@ -195,6 +230,47 @@ namespace MysteryButton
                 }
             }
         }
+        #endregion CloseAllDoors
+        
+        #region ChargeAllBatteries
+
+        [ServerRpc(RequireOwnership = false)]
+        void ChargeAllBatteriesServerRpc()
+        {
+            ChargeAllBatteriesClientRpc();
+        }
+
+        [ClientRpc]
+        void ChargeAllBatteriesClientRpc()
+        {
+            List<GrabbableObject> batteryObjects = FindObjectsOfType<GrabbableObject>().ToList();
+            foreach (GrabbableObject batteryObject in batteryObjects)
+            {
+                batteryObject.insertedBattery.charge = 1f;
+            }
+        }
+        
+        #endregion ChargeAllBatteries
+        
+        #region DischargeAllBatteries
+
+        [ServerRpc(RequireOwnership = false)]
+        void DischargeAllBatteriesServerRpc()
+        {
+            DischargeAllBatteriesClientRpc();
+        }
+
+        [ClientRpc]
+        void DischargeAllBatteriesClientRpc()
+        {
+            List<GrabbableObject> batteryObjects = FindObjectsOfType<GrabbableObject>().ToList();
+            foreach (GrabbableObject batteryObject in batteryObjects)
+            {
+                batteryObject.insertedBattery.charge = 0f;
+            }
+        }
+        
+        #endregion DischargeAllBatteries
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
