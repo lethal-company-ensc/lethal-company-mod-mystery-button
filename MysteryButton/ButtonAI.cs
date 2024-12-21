@@ -27,10 +27,20 @@ namespace MysteryButton
         {
             logger.LogInfo("ButtonAI::Start");
 
+            AudioSource audioSource = gameObject.GetComponent<AudioSource>();
+            logger.LogInfo("AudioSource is " + (audioSource ? " not null" : "null"));
+            creatureSFX = gameObject.GetComponent<AudioSource>();
+
             id = cpt++;
             enemyHP = 100;
             rng = new Random((int)NetworkObjectId);
             isLock = false;
+
+            if (creatureSFX && enemyType?.overrideVentSFX)
+            {
+                creatureSFX.PlayOneShot(enemyType?.overrideVentSFX);
+            }
+
             base.Start();
         }
 
@@ -135,7 +145,11 @@ namespace MysteryButton
         public void KillEnemyClientRpc()
         {
             logger.LogInfo("ButtonAI::KillEnemyClientRpc");
-            KillEnemy(true);
+            if (creatureSFX && enemyType?.deathSFX)
+            {
+                creatureSFX.PlayOneShot(enemyType?.deathSFX);
+            }
+            KillEnemy(false);
         }
         #endregion KillEnemy
 
@@ -192,11 +206,10 @@ namespace MysteryButton
         [ClientRpc]
         void OpenAllDoorsClientRpc(string name)
         {
-            var player = GetPlayerByNameOrFirstOne(name);
-
             logger.LogInfo("ButtonAI::OpenAllDoorsClientRpc");
+            var player = GetPlayerByNameOrFirstOne(name);
+            
             List<DoorLock> doors = FindObjectsOfType<DoorLock>().ToList();
-            logger.LogInfo("OpenAllDoors: " + doors.Count);
             foreach (DoorLock door in doors)
             {
                 if (!door.isDoorOpened)
@@ -217,9 +230,9 @@ namespace MysteryButton
         [ClientRpc]
         void CloseAllDoorsClientRpc(string name)
         {
+            logger.LogInfo("ButtonAI::CloseAllDoorsClientRpc");
             var player = GetPlayerByNameOrFirstOne(name);
 
-            logger.LogInfo("ButtonAI::CloseAllDoorsClientRpc");
             List<DoorLock> doors = FindObjectsOfType<DoorLock>().ToList();
             logger.LogInfo("CloseAllDoors: " + doors.Count);
             foreach (DoorLock door in doors)
@@ -243,6 +256,7 @@ namespace MysteryButton
         [ClientRpc]
         void ChargeAllBatteriesClientRpc()
         {
+            logger.LogInfo("ButtonAI::ChargeAllBatteriesClientRpc");
             List<GrabbableObject> batteryObjects = FindObjectsOfType<GrabbableObject>().ToList();
             foreach (GrabbableObject batteryObject in batteryObjects)
             {
@@ -264,6 +278,7 @@ namespace MysteryButton
         [ClientRpc]
         void DischargeAllBatteriesClientRpc()
         {
+            logger.LogInfo("ButtonAI::DischargeAllBatteriesClientRpc");
             List<GrabbableObject> batteryObjects = FindObjectsOfType<GrabbableObject>().ToList();
             foreach (GrabbableObject batteryObject in batteryObjects)
             {
