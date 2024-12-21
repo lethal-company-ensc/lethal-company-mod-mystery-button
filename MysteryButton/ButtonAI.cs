@@ -152,7 +152,7 @@ namespace MysteryButton
                 creatureSFX.PlayOneShot(enemyType?.deathSFX);
             }
 
-            Animator animator = gameObject.GetComponent<Animator>();
+            Animator animator = gameObject.GetComponentInChildren<Animator>();
             if (animator)
             {
                 animator.SetBool(PlayDeath, true);
@@ -220,8 +220,18 @@ namespace MysteryButton
             List<DoorLock> doors = FindObjectsOfType<DoorLock>().ToList();
             foreach (DoorLock door in doors)
             {
-                if (!door.isDoorOpened)
+                bool openLockedDoor = !door.isLocked || rng.Next(0, 10) < 2;
+                if (!door.isDoorOpened && openLockedDoor)
                 {
+                    if (door.isLocked)
+                    {
+                        logger.LogInfo("Unlocking door id=" + door.NetworkObjectId);
+                        door.isLocked = false;
+                        if (door.doorLockSFX && door.unlockSFX)
+                        {
+                            door.doorLockSFX.PlayOneShot(door.unlockSFX);
+                        }
+                    }
                     door.OpenOrCloseDoor(player);
                 }
             }
@@ -248,6 +258,16 @@ namespace MysteryButton
                 if (door.isDoorOpened)
                 {
                     door.OpenOrCloseDoor(player);
+
+                    if (rng.Next(0, 10) < 2)
+                    {
+                        logger.LogInfo("Locking door id=" + door.NetworkObjectId);
+                        if (door.doorLockSFX && door.unlockSFX)
+                        {
+                            door.doorLockSFX.PlayOneShot(door.unlockSFX);
+                        }
+                        door.isLocked = true;
+                    }
                 }
             }
         }
@@ -268,6 +288,7 @@ namespace MysteryButton
             List<GrabbableObject> batteryObjects = FindObjectsOfType<GrabbableObject>().ToList();
             foreach (GrabbableObject batteryObject in batteryObjects)
             {
+                logger.LogInfo("Item=" + batteryObject.name + ", chargeBefore=" + batteryObject.insertedBattery.charge + ", isEmptyBefore=" + batteryObject.insertedBattery.empty);
                 batteryObject.insertedBattery.charge = 1f;
                 batteryObject.insertedBattery.empty = false;
             }
@@ -290,7 +311,9 @@ namespace MysteryButton
             List<GrabbableObject> batteryObjects = FindObjectsOfType<GrabbableObject>().ToList();
             foreach (GrabbableObject batteryObject in batteryObjects)
             {
+                logger.LogInfo("Item=" + batteryObject.name + ", chargeBefore=" + batteryObject.insertedBattery.charge + ", isEmptyBefore=" + batteryObject.insertedBattery.empty);
                 batteryObject.insertedBattery.charge = 0f;
+                batteryObject.insertedBattery.empty = true;
             }
         }
         
