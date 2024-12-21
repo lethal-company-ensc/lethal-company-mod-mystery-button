@@ -1,5 +1,5 @@
 # library files
-/Libraries/*
+/Libraries/
 
 # build files
 bin/
@@ -8,7 +8,7 @@ obj/
 .idea/
 
 # pack files
-/dist/*
+/Build/
 
 # user files
 /*.user
