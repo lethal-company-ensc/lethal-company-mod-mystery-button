@@ -16,6 +16,8 @@ namespace MysteryButton
         private static bool IS_TEST = false;
 
         internal static ManualLogSource logger = Logger.CreateLogSource("Elirasza.MysteryButton.ButtonAI");
+        
+        private static readonly int PlayDeath = Animator.StringToHash("playDeath");
 
         private Random rng;
 
@@ -149,7 +151,13 @@ namespace MysteryButton
             {
                 creatureSFX.PlayOneShot(enemyType?.deathSFX);
             }
-            KillEnemy(false);
+
+            Animator animator = gameObject.GetComponent<Animator>();
+            if (animator)
+            {
+                animator.SetBool(PlayDeath, true);
+            }
+            KillEnemy();
         }
         #endregion KillEnemy
 
