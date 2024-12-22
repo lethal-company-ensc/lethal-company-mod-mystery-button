@@ -101,18 +101,22 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                SpawnScrapServerRpc(null);
+                SpawnEnemyServerRpc(1);
             }
             else
             {
                 if (effect < 40)
                 {
-                    SpawnScrapServerRpc(null);
+                    SpawnScrapServerRpc();
                 }
                 else if (effect < 50)
                 {
-                    List<Item> allScrapList = StartOfRound.Instance.allItemsList.itemsList.Where((item) => item.isScrap && item.maxValue > 150).ToList();
-                    SpawnScrapServerRpc(allScrapList[rng.Next(0, allScrapList.Count - 1)]);
+                    SpawnSpecificScrapServerRpc(1);
+                }
+                else if (effect < 51)
+                {
+                    int amount = rng.Next(1, 11);
+                    SpawnSpecificScrapServerRpc(amount);
                 }
                 else if (effect < 60)
                 {
@@ -128,7 +132,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                SpawnScrapServerRpc(null);
+                SpawnEnemyServerRpc(1);
             }
             else
             {
@@ -143,6 +147,14 @@ namespace MysteryButton
                 else if (effect < 70)
                 {
                     DischargeAllBatteriesServerRpc();
+                }
+                else if (effect < 80)
+                {
+                    SpawnEnemyServerRpc(1);
+                }
+                else if (effect < 81)
+                {
+                    SpawnEnemyServerRpc(rng.Next(1, 5));
                 }
                 else
                 {
@@ -346,41 +358,86 @@ namespace MysteryButton
         #region SpawnScrap
 
         [ServerRpc(RequireOwnership = false)]
-        void SpawnScrapServerRpc(Item? specificScrap)
+        void SpawnScrapServerRpc()
+        {
+            logger.LogInfo("ButtonAI::SpawnScrapServerRpc");
+            SpawnScrap(null, 1);
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        void SpawnSpecificScrapServerRpc(int amount)
+        {
+            logger.LogInfo("ButtonAI::SpawnSpecificScrapServerRpc");
+            List<Item> allScrapList = StartOfRound.Instance.allItemsList.itemsList.Where((item) => item.isScrap && item.maxValue > 150).ToList();
+            SpawnScrap(allScrapList[rng.Next(0, allScrapList.Count - 1)], amount);
+        }
+
+        void SpawnScrap(Item? specificScrap, int amount)
         {
             List<Item> allScrapList = StartOfRound.Instance.allItemsList.itemsList.Where((item) => item.isScrap).ToList();
             int allItemListSize = allScrapList.Count;
-            int allItemListIndex = rng.Next(0, allItemListSize);
-            
-            int randomIndex = rng.Next(0, RoundManager.Instance.outsideAINodes.Length);
-            Item randomItem = specificScrap == null ? allScrapList[allItemListIndex] : specificScrap;
-            
-            GameObject obj = Instantiate(randomItem.spawnPrefab, RoundManager.Instance.insideAINodes[randomIndex].transform.position, Quaternion.identity);
-            
-            int value = rng.Next(randomItem.minValue, randomItem.maxValue);
-            float weight = randomItem.weight;
-            
-            logger.LogInfo("Spawning item=" + randomItem.name + ", value=" + value + ", weight=" + weight);
-            
-            ScanNodeProperties scan = obj.GetComponent<ScanNodeProperties>();
-            if (scan == null)
-            {
-                logger.LogInfo("No scan found, creating with scrapValue=" + value + " and subText=" + $"\"Value: ${value}\"");
-                scan = obj.AddComponent<ScanNodeProperties>();
-                scan.scrapValue = value;
-                scan.subText = $"Value: ${value.ToString()}";
-                scan.headerText = randomItem.name;
-            }
 
-            obj.GetComponent<GrabbableObject>().fallTime = 0f;
-            obj.GetComponent<GrabbableObject>().scrapValue = value;
-            obj.GetComponent<GrabbableObject>().itemProperties.weight = weight;
-            obj.GetComponent<GrabbableObject>().itemProperties.creditsWorth = value;
-            obj.GetComponent<GrabbableObject>().SetScrapValue(value);
-            obj.GetComponent<NetworkObject>().Spawn();
+            for (int i = 0; i < amount; i++)
+            {
+                int randomIndex = rng.Next(0, RoundManager.Instance.outsideAINodes.Length);
+                int allItemListIndex = rng.Next(0, allItemListSize);
+                Item randomItem = specificScrap ?? allScrapList[allItemListIndex];
+
+                GameObject obj = Instantiate(randomItem.spawnPrefab,
+                    RoundManager.Instance.insideAINodes[randomIndex].transform.position, Quaternion.identity);
+
+                int value = rng.Next(randomItem.minValue, randomItem.maxValue);
+                float weight = randomItem.weight;
+
+                logger.LogInfo("Spawning item=" + randomItem.name + ", value=" + value + ", weight=" + weight);
+
+                ScanNodeProperties scan = obj.GetComponent<ScanNodeProperties>();
+                if (scan == null)
+                {
+                    logger.LogInfo("No scan found, creating with scrapValue=" + value + " and subText=" +
+                                   $"\"Value: ${value}\"");
+                    scan = obj.AddComponent<ScanNodeProperties>();
+                    scan.scrapValue = value;
+                    scan.subText = $"Value: ${value.ToString()}";
+                    scan.headerText = randomItem.name;
+                }
+
+                obj.GetComponent<GrabbableObject>().fallTime = 0f;
+                obj.GetComponent<GrabbableObject>().scrapValue = value;
+                obj.GetComponent<GrabbableObject>().itemProperties.weight = weight;
+                obj.GetComponent<GrabbableObject>().itemProperties.creditsWorth = value;
+                obj.GetComponent<GrabbableObject>().SetScrapValue(value);
+                obj.GetComponent<NetworkObject>().Spawn();
+            }
         }
 
         #endregion SpawnScrap
+        
+        #region SpawnEnemy
+
+        [ServerRpc(RequireOwnership = false)]
+        void SpawnEnemyServerRpc(int amount)
+        {
+            logger.LogInfo("ButtonAI::SpawnEnemyServerRpc, amount=" + amount);
+            List<SpawnableEnemyWithRarity> enemies = StartOfRound.Instance.currentLevel.Enemies;
+            int allEnemiesListSize = enemies.Count;
+
+            for (int i = 0; i < amount; i++)
+            {
+                int allEnemiesListIndex = rng.Next(0, allEnemiesListSize);
+                int randomIndex = rng.Next(0, RoundManager.Instance.allEnemyVents.Length);
+                SpawnableEnemyWithRarity randomEnemy = enemies[allEnemiesListIndex];
+
+                logger.LogInfo("Spawning enemy=" + randomEnemy.enemyType.name);
+
+                GameObject obj = Instantiate(randomEnemy.enemyType.enemyPrefab,
+                    RoundManager.Instance.allEnemyVents[randomIndex].transform.position, Quaternion.identity);
+
+                obj.GetComponent<NetworkObject>().Spawn(destroyWithScene: true);
+            }
+        }
+
+        #endregion SpawnEnemy
         
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
