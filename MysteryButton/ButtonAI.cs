@@ -339,13 +339,6 @@ namespace MysteryButton
         [ServerRpc(RequireOwnership = false)]
         void SpawnScrapServerRpc()
         {
-            SpawnScrapClientRpc();
-        }
-
-        // TODO: Not working on network : the scrap is only visible by the collider
-        [ClientRpc]
-        void SpawnScrapClientRpc()
-        {
             List<Item> allScrapList = StartOfRound.Instance.allItemsList.itemsList.Where((item) => item.isScrap).ToList();
             int allItemListSize = allScrapList.Count;
             int allItemListIndex = rng.Next(0, allItemListSize);
@@ -377,7 +370,7 @@ namespace MysteryButton
             obj.GetComponent<GrabbableObject>().SetScrapValue(value);
             obj.GetComponent<NetworkObject>().Spawn();
         }
-        
+
         #endregion SpawnScrap
         
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
