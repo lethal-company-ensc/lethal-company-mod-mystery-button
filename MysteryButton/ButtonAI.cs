@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
 using GameNetcodeStuff;
+using LethalLib.Modules;
 using UnityEngine;
 using Unity.Netcode;
 using Logger = BepInEx.Logging.Logger;
@@ -13,7 +15,7 @@ namespace MysteryButton
     {
         private static int cpt = 0;
 
-        private static bool IS_TEST = false;
+        private static bool IS_TEST = true;
 
         internal static ManualLogSource logger = Logger.CreateLogSource("Elirasza.MysteryButton.ButtonAI");
         
@@ -44,6 +46,18 @@ namespace MysteryButton
             }
 
             base.Start();
+        }
+
+        public override void OnCollideWithEnemy(Collider other, EnemyAI collidedEnemy = null)
+        {
+            base.OnCollideWithEnemy(other, collidedEnemy);
+
+            if (!isLock)
+            {
+                logger.LogInfo("ButtonAI::OnCollideWithEnemy, ButtonAI::id=" + id);
+                isLock = true;
+                DoMalusEffect(collidedEnemy);
+            }
         }
 
         public override void OnCollideWithPlayer(Collider other)
@@ -87,7 +101,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                ChargeAllBatteriesServerRpc();
+                SpawnScrapServerRpc();
             }
             else
             {
@@ -98,14 +112,14 @@ namespace MysteryButton
             }
         }
 
-        private void DoMalusEffect(PlayerControllerB player)
+        private void DoMalusEffect(NetworkBehaviour entity)
         {
             int effect = rng.Next(0, 100);
             logger.LogInfo("Malus effect=" + effect);
 
             if (IS_TEST)
             {
-                DischargeAllBatteriesServerRpc();
+                SpawnScrapServerRpc();
             }
             else
             {
@@ -123,14 +137,15 @@ namespace MysteryButton
                 }
                 else
                 {
+                    string? entityName = entity?.name;
                     int open = rng.Next(0, 100);
                     if (open < 50)
                     {
-                        OpenAllDoorsServerRpc(player.name);
+                        OpenAllDoorsServerRpc(entityName);
                     }
                     else
                     {
-                        CloseAllDoorsServerRpc(player.name);
+                        CloseAllDoorsServerRpc(entityName);
                     }
                 }
             }
@@ -206,13 +221,13 @@ namespace MysteryButton
 
         #region OpenAllDoors
         [ServerRpc(RequireOwnership = false)]
-        void OpenAllDoorsServerRpc(string name)
+        void OpenAllDoorsServerRpc(string? name)
         {
             OpenAllDoorsClientRpc(name);
         }
 
         [ClientRpc]
-        void OpenAllDoorsClientRpc(string name)
+        void OpenAllDoorsClientRpc(string? name)
         {
             logger.LogInfo("ButtonAI::OpenAllDoorsClientRpc");
             var player = GetPlayerByNameOrFirstOne(name);
@@ -240,13 +255,13 @@ namespace MysteryButton
 
         #region CloseAllDoors
         [ServerRpc(RequireOwnership = false)]
-        void CloseAllDoorsServerRpc(string name)
+        void CloseAllDoorsServerRpc(string? name)
         {
             CloseAllDoorsClientRpc(name);
         }
 
         [ClientRpc]
-        void CloseAllDoorsClientRpc(string name)
+        void CloseAllDoorsClientRpc(string? name)
         {
             logger.LogInfo("ButtonAI::CloseAllDoorsClientRpc");
             var player = GetPlayerByNameOrFirstOne(name);
@@ -319,12 +334,58 @@ namespace MysteryButton
         
         #endregion DischargeAllBatteries
 
+        #region SpawnScrap
+
+        [ServerRpc(RequireOwnership = false)]
+        void SpawnScrapServerRpc()
+        {
+            SpawnScrapClientRpc();
+        }
+
+        // TODO: Not working on network : the scrap is only visible by the collider
+        [ClientRpc]
+        void SpawnScrapClientRpc()
+        {
+            List<Item> allScrapList = StartOfRound.Instance.allItemsList.itemsList.Where((item) => item.isScrap).ToList();
+            int allItemListSize = allScrapList.Count;
+            int allItemListIndex = rng.Next(0, allItemListSize);
+            
+            int randomIndex = rng.Next(0, RoundManager.Instance.outsideAINodes.Length);
+            Item randomItem = allScrapList[allItemListIndex];
+            
+            GameObject obj = Instantiate(randomItem.spawnPrefab, RoundManager.Instance.insideAINodes[randomIndex].transform.position, Quaternion.identity);
+            
+            int value = rng.Next(randomItem.minValue, randomItem.maxValue);
+            float weight = randomItem.weight;
+            
+            logger.LogInfo("Spawning item=" + randomItem.name + ", value=" + value + ", weight=" + weight);
+            
+            ScanNodeProperties scan = obj.GetComponent<ScanNodeProperties>();
+            if (scan == null)
+            {
+                logger.LogInfo("No scan found, creating with scrapValue=" + value + " and subText=" + $"\"Value: ${value}\"");
+                scan = obj.AddComponent<ScanNodeProperties>();
+                scan.scrapValue = value;
+                scan.subText = $"Value: ${value.ToString()}";
+                scan.headerText = randomItem.name;
+            }
+
+            obj.GetComponent<GrabbableObject>().fallTime = 0f;
+            obj.GetComponent<GrabbableObject>().scrapValue = value;
+            obj.GetComponent<GrabbableObject>().itemProperties.weight = weight;
+            obj.GetComponent<GrabbableObject>().itemProperties.creditsWorth = value;
+            obj.GetComponent<GrabbableObject>().SetScrapValue(value);
+            obj.GetComponent<NetworkObject>().Spawn();
+        }
+        
+        #endregion SpawnScrap
+        
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref id);
         }
 
-        private static PlayerControllerB GetPlayerByNameOrFirstOne(string name)
+        private static PlayerControllerB GetPlayerByNameOrFirstOne(string? name)
         {
             List<PlayerControllerB> activePlayers = GetActivePlayers();
             return activePlayers.FirstOrDefault(x => x.name == name) ?? StartOfRound.Instance.allPlayerScripts[0];
@@ -335,6 +396,14 @@ namespace MysteryButton
             List<PlayerControllerB> activePlayers = [];
             activePlayers.AddRange(StartOfRound.Instance.allPlayerScripts.Where(player => player.isActiveAndEnabled).ToList());
             return activePlayers;
+        }
+        
+        static float NextFloat(Random random, float rangeMin, float rangeMax)
+        {
+            double range = (double) rangeMin - (double) rangeMax;
+            double sample = random.NextDouble();
+            double scaled = (sample * range) + rangeMin;
+            return (float) scaled;
         }
     }
 }

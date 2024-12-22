@@ -15,7 +15,7 @@ namespace MysteryButton
 	{
 		public static Harmony? Harmony { get; protected set; }
 		public static List<AssetBundle> Bundles = [];
-
+		
 		protected void Awake()
 		{
 			Patch();
@@ -32,7 +32,7 @@ namespace MysteryButton
 				Logger.LogInfo($"Loaded {Bundles.Count} bundles : {string.Join(", ", Bundles)}");
 			}
 
-			AddEnemyFromBundle<ButtonAI>(Bundles.First(), "MysteryButton", "Mysterious Button", 1641, 10, Levels.LevelTypes.All, Enemies.SpawnType.Default);
+			AddEnemyFromBundle<ButtonAI>(Bundles.First(), "MysteryButton", "Mysterious Button", 10, Levels.LevelTypes.All, Enemies.SpawnType.Default);
 
 			Logger.LogInfo($"{MyPluginInfo.PLUGIN_GUID} v{MyPluginInfo.PLUGIN_VERSION} has loaded!");
 		}
@@ -87,17 +87,29 @@ namespace MysteryButton
 			}
 		}
 
-		protected void AddEnemyFromBundle<T>(AssetBundle bundle, string name, string nameInTerminal, int id, int rarity, Levels.LevelTypes levelTypes, Enemies.SpawnType spawnType) where T : EnemyAI
+		protected void AddEnemyFromBundle<T>(AssetBundle bundle, string name, string nameInTerminal, int rarity, Levels.LevelTypes levelTypes, Enemies.SpawnType spawnType) where T : EnemyAI
 		{
-			EnemyType enemyType = bundle.LoadAsset<EnemyType>("EnemyType");
+			EnemyType enemyType = bundle.LoadAsset<EnemyType>("MysteriousButtonET");
 			if (enemyType == null || enemyType.enemyPrefab == null)
 			{
 				Logger.LogError($"Could not load enemy {name} from bundle {bundle.name}.");
 				return;
 			}
-			else
+
+			Logger.LogInfo($"Loaded enemy {name} from bundle {bundle.name}.");
+			
+			var terminalNode = bundle.LoadAsset<TerminalNode>("MysteriousButtonTN");
+			if (terminalNode == null)
 			{
-				Logger.LogInfo($"Loaded enemy {name} from bundle {bundle.name}.");
+				Logger.LogError($"Could not load {name} terminal node from {bundle.name}.");
+				return;
+			}
+			
+			var terminalKeyword = bundle.LoadAsset<TerminalKeyword>("MysteriousButtonTK");
+			if (terminalKeyword == null)
+			{
+				Logger.LogError($"Could not load {name} terminal keyword from {bundle.name}.");
+				return;
 			}
 
 			enemyType.enemyPrefab = bundle.LoadAsset<GameObject>($"{name}.prefab");
@@ -106,10 +118,8 @@ namespace MysteryButton
 				Logger.LogError($"Could not load enemy prefab {name} from bundle {bundle.name}.");
 				return;
 			}
-			else
-			{
-				Logger.LogInfo($"Loaded enemy {name} prefab from bundle {bundle.name}.");
-			}
+
+			Logger.LogInfo($"Loaded enemy {name} prefab from bundle {bundle.name}.");
 
 			T enemyAI = enemyType.enemyPrefab.AddComponent<T>();
 			if (enemyAI == null)
@@ -117,27 +127,16 @@ namespace MysteryButton
 				Logger.LogError($"Could not attach AI to enemy {name} from {bundle.name}.");
 				return;
 			}
-			else
-			{
-				Logger.LogInfo($"Attached {typeof(T).Name} script to enemy {name} from {bundle.name}.");
-			}
+
+			Logger.LogInfo($"Attached {typeof(T).Name} script to enemy {name} from {bundle.name}.");
 
 			enemyAI.enemyType = enemyType;
 			enemyAI.enemyType.enemyPrefab.GetComponentInChildren<EnemyAICollisionDetect>().mainScript = enemyAI;
-
-			TerminalNode node = ScriptableObject.CreateInstance<TerminalNode>();
-			node.clearPreviousText = true;
-			node.creatureFileID = id;
-			node.creatureName = nameInTerminal;
-			node.displayText = nameInTerminal;
-			node.maxCharactersToType = 2000;
-
-			TerminalKeyword keywords = TerminalUtils.CreateTerminalKeyword("button", specialKeywordResult: node);
-
+			
 			NetworkPrefabs.RegisterNetworkPrefab(enemyAI.enemyType.enemyPrefab);
-			Enemies.RegisterEnemy(enemyAI.enemyType, rarity, levelTypes, spawnType, node, keywords);
+			Enemies.RegisterEnemy(enemyAI.enemyType, rarity, levelTypes, spawnType, terminalNode, terminalKeyword);
 
-			Logger.LogInfo($"Loaded enemy {name} at ID {id} with terminal name {nameInTerminal}.");
+			Logger.LogInfo($"Loaded enemy {terminalNode.creatureName} with terminal name {terminalKeyword.word}.");
 		}
 	}
 }
