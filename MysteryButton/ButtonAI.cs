@@ -4,8 +4,10 @@ using System.Linq;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using LethalLib.Modules;
+using Steamworks.Data;
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using Logger = BepInEx.Logging.Logger;
 using Random = System.Random;
 
@@ -15,7 +17,7 @@ namespace MysteryButton
     {
         private static int cpt = 0;
 
-        private static bool IS_TEST = false;
+        private static bool IS_TEST = true;
 
         internal static ManualLogSource logger = Logger.CreateLogSource("Elirasza.MysteryButton.ButtonAI");
         
@@ -101,7 +103,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                SpawnEnemyServerRpc(1);
+                TeleportPlayerToRandomPositionServerRpc();
             }
             else
             {
@@ -132,7 +134,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                SpawnEnemyServerRpc(1);
+                TeleportPlayerToRandomPositionServerRpc();
             }
             else
             {
@@ -379,7 +381,7 @@ namespace MysteryButton
 
             for (int i = 0; i < amount; i++)
             {
-                int randomIndex = rng.Next(0, RoundManager.Instance.outsideAINodes.Length);
+                int randomIndex = rng.Next(0, RoundManager.Instance.insideAINodes.Length);
                 int allItemListIndex = rng.Next(0, allItemListSize);
                 Item randomItem = specificScrap ?? allScrapList[allItemListIndex];
 
@@ -438,6 +440,44 @@ namespace MysteryButton
         }
 
         #endregion SpawnEnemy
+        
+        #region TeleportPlayerToRandomPosition
+
+        [ServerRpc(RequireOwnership = false)]
+        void TeleportPlayerToRandomPositionServerRpc()
+        {
+            TeleportPlayerToRandomPositionClientRpc();
+        }
+        
+        [ClientRpc]
+        void TeleportPlayerToRandomPositionClientRpc()
+        {
+            logger.LogInfo("ButtonAI::TeleportPlayerToRandomPositionClientRpc");
+            List<PlayerControllerB> players = GetActivePlayers();
+            PlayerControllerB player = players[rng.Next(players.Count)];
+            // PlayerControllerB player = GetPlayerByNameOrFirstOne(null);
+            
+            int randomIndex = rng.Next(0, RoundManager.Instance.insideAINodes.Length);
+            var teleportPos = RoundManager.Instance.insideAINodes[randomIndex].transform.position;
+
+            if ((bool) (UnityEngine.Object) FindObjectOfType<AudioReverbPresets>())
+                FindObjectOfType<AudioReverbPresets>().audioPresets[2].ChangeAudioReverbForPlayer(player);
+            player.isInElevator = false;
+            player.isInHangarShipRoom = false;
+            player.isInsideFactory = true;
+            player.averageVelocity = 0.0f;
+            player.velocityLastFrame = Vector3.zero;
+            player.TeleportPlayer(teleportPos);
+            player.beamOutParticle.Play();
+
+            ShipTeleporter shipTeleporter = FindObjectOfType<ShipTeleporter>();
+            if (shipTeleporter)
+            {
+                player.movementAudio.PlayOneShot(shipTeleporter.teleporterBeamUpSFX);
+            }
+        }
+
+        #endregion TeleportPlayerToRandomPosition
         
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
