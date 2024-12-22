@@ -15,7 +15,7 @@ namespace MysteryButton
     {
         private static int cpt = 0;
 
-        private static bool IS_TEST = true;
+        private static bool IS_TEST = false;
 
         internal static ManualLogSource logger = Logger.CreateLogSource("Elirasza.MysteryButton.ButtonAI");
         
@@ -101,11 +101,20 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                SpawnScrapServerRpc();
+                SpawnScrapServerRpc(null);
             }
             else
             {
-                if (effect < 50)
+                if (effect < 40)
+                {
+                    SpawnScrapServerRpc(null);
+                }
+                else if (effect < 50)
+                {
+                    List<Item> allScrapList = StartOfRound.Instance.allItemsList.itemsList.Where((item) => item.isScrap && item.maxValue > 150).ToList();
+                    SpawnScrapServerRpc(allScrapList[rng.Next(0, allScrapList.Count - 1)]);
+                }
+                else if (effect < 60)
                 {
                     ChargeAllBatteriesServerRpc();
                 }
@@ -119,7 +128,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                SpawnScrapServerRpc();
+                SpawnScrapServerRpc(null);
             }
             else
             {
@@ -337,14 +346,14 @@ namespace MysteryButton
         #region SpawnScrap
 
         [ServerRpc(RequireOwnership = false)]
-        void SpawnScrapServerRpc()
+        void SpawnScrapServerRpc(Item? specificScrap)
         {
             List<Item> allScrapList = StartOfRound.Instance.allItemsList.itemsList.Where((item) => item.isScrap).ToList();
             int allItemListSize = allScrapList.Count;
             int allItemListIndex = rng.Next(0, allItemListSize);
             
             int randomIndex = rng.Next(0, RoundManager.Instance.outsideAINodes.Length);
-            Item randomItem = allScrapList[allItemListIndex];
+            Item randomItem = specificScrap == null ? allScrapList[allItemListIndex] : specificScrap;
             
             GameObject obj = Instantiate(randomItem.spawnPrefab, RoundManager.Instance.insideAINodes[randomIndex].transform.position, Quaternion.identity);
             
