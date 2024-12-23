@@ -17,7 +17,7 @@ namespace MysteryButton
     {
         private static int cpt = 0;
 
-        private static bool IS_TEST = true;
+        private static bool IS_TEST = false;
 
         internal static ManualLogSource logger = Logger.CreateLogSource("Elirasza.MysteryButton.ButtonAI");
         
@@ -103,7 +103,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                TeleportPlayerToRandomPositionServerRpc();
+                SwitchPlayersPositionServerRpc();
             }
             else
             {
@@ -134,11 +134,19 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                TeleportPlayerToRandomPositionServerRpc();
+                SwitchPlayersPositionServerRpc();
             }
             else
             {
-                if (effect < 45)
+                if (effect < 5)
+                {
+                    TeleportPlayerToRandomPositionServerRpc();
+                } 
+                else if (effect < 7)
+                {
+                    SwitchPlayersPositionServerRpc();
+                }
+                else if (effect < 45)
                 {
                     PlayerDrunkServerRpc();
                 }
@@ -479,6 +487,70 @@ namespace MysteryButton
 
         #endregion TeleportPlayerToRandomPosition
         
+        #region SwitchPlayerPosition
+
+        [ServerRpc(RequireOwnership = false)]
+        void SwitchPlayersPositionServerRpc()
+        {
+            SwitchPlayersPositionClientRpc();
+        }
+        
+        [ClientRpc]
+        void SwitchPlayersPositionClientRpc()
+        {
+            logger.LogInfo("ButtonAI::SwitchPlayerPositionClientRpc");
+            
+            List<PlayerControllerB> players = GetActivePlayers().Where((player) => !player.isPlayerDead).ToList();
+            if (players.Count < 2)
+            {
+                return;
+            }
+            
+            PlayerControllerB player = players[rng.Next(players.Count)];
+            PlayerControllerB player2;
+
+            do
+            {
+                player2 = players[rng.Next(players.Count)];
+            } while (player2.NetworkObjectId == player.NetworkObjectId);
+            
+            logger.LogInfo("Switching positions of " + player.playerUsername + " and " + player2.playerUsername);
+
+            if ((bool)(UnityEngine.Object)FindObjectOfType<AudioReverbPresets>())
+            {
+                FindObjectOfType<AudioReverbPresets>().audioPresets[2].ChangeAudioReverbForPlayer(player);
+                FindObjectOfType<AudioReverbPresets>().audioPresets[2].ChangeAudioReverbForPlayer(player2);
+            }
+            
+            Vector3 playerPos = new Vector3(player.transform.position.x, player.transform.position.y, player.transform.position.z);
+            Vector3 player2Pos = new Vector3(player2.transform.position.x, player2.transform.position.y, player2.transform.position.z);
+
+            player.isInElevator = false;
+            player.isInHangarShipRoom = false;
+            player.isInsideFactory = true;
+            player.averageVelocity = 0.0f;
+            player.velocityLastFrame = Vector3.zero;
+            player.TeleportPlayer(player2Pos);
+            player.beamOutParticle.Play();
+            
+            player2.isInElevator = false;
+            player2.isInHangarShipRoom = false;
+            player2.isInsideFactory = true;
+            player2.averageVelocity = 0.0f;
+            player2.velocityLastFrame = Vector3.zero;
+            player2.TeleportPlayer(playerPos);
+            player2.beamOutParticle.Play();
+
+            ShipTeleporter shipTeleporter = FindObjectOfType<ShipTeleporter>();
+            if (shipTeleporter)
+            {
+                player.movementAudio.PlayOneShot(shipTeleporter.teleporterBeamUpSFX);
+                player2.movementAudio.PlayOneShot(shipTeleporter.teleporterBeamUpSFX);
+            }
+        }
+
+        #endregion SwitchPlayerPosition
+        
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref id);
@@ -493,7 +565,7 @@ namespace MysteryButton
         private static List<PlayerControllerB> GetActivePlayers()
         {
             List<PlayerControllerB> activePlayers = [];
-            activePlayers.AddRange(StartOfRound.Instance.allPlayerScripts.Where(player => player.isActiveAndEnabled).ToList());
+            activePlayers.AddRange(StartOfRound.Instance.allPlayerScripts.Where(player => player.isActiveAndEnabled && player.playerSteamId > 0).ToList());
             return activePlayers;
         }
         
