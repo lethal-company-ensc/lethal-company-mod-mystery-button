@@ -1,13 +1,14 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Timers;
 using BepInEx.Logging;
 using GameNetcodeStuff;
-using LethalLib.Modules;
-using Steamworks.Data;
 using UnityEngine;
 using Unity.Netcode;
-using Unity.Netcode.Components;
 using Logger = BepInEx.Logging.Logger;
 using Random = System.Random;
 
@@ -103,7 +104,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                ChargeAllBatteriesServerRpc();
+                ExplodeLandminesServerRpc();
             }
             else
             {
@@ -122,7 +123,7 @@ namespace MysteryButton
                 }
                 else if (effect < 60)
                 {
-                    ChargeAllBatteriesServerRpc();
+                    ExplodeLandminesServerRpc();
                 }
             }
         }
@@ -134,7 +135,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                DischargeAllBatteriesServerRpc();
+                ExplodeLandminesServerRpc();
             }
             else
             {
@@ -153,10 +154,6 @@ namespace MysteryButton
                 else if (effect < 50)
                 {
                     RandomPlayerIncreaseInsanityServerRpc();
-                }
-                else if (effect < 70)
-                {
-                    DischargeAllBatteriesServerRpc();
                 }
                 else if (effect < 80)
                 {
@@ -319,52 +316,28 @@ namespace MysteryButton
         }
         #endregion CloseAllDoors
         
-        #region ChargeAllBatteries
+        #region ExplodeLandmines
 
         [ServerRpc(RequireOwnership = false)]
-        void ChargeAllBatteriesServerRpc()
+        void ExplodeLandminesServerRpc()
         {
-            ChargeAllBatteriesClientRpc();
-        }
-
-        [ClientRpc]
-        void ChargeAllBatteriesClientRpc()
-        {
-            logger.LogInfo("ButtonAI::ChargeAllBatteriesClientRpc");
-            List<GrabbableObject> batteryObjects = FindObjectsOfType<GrabbableObject>().ToList();
-            foreach (GrabbableObject batteryObject in batteryObjects)
+            logger.LogInfo("ButtonAI::ExplodeLandminesServerRpc");
+            List<Landmine> landmines = FindObjectsOfType<Landmine>().Where(mine => !mine.hasExploded).ToList();
+            logger.LogInfo(landmines.Count + " landmines found");
+            foreach (var landmine in landmines)
             {
-                logger.LogInfo("Item=" + batteryObject.name + ", chargeBefore=" + batteryObject.insertedBattery.charge + ", isEmptyBefore=" + batteryObject.insertedBattery.empty);
-                batteryObject.ChargeBatteries();
-                logger.LogInfo("Item=" + batteryObject.name + ", chargeAfter=" + batteryObject.insertedBattery.charge + ", isEmptyAfter=" + batteryObject.insertedBattery.empty);
+                logger.LogInfo("Exploding landmine id=" + landmine.NetworkObjectId);
+                landmine.ExplodeMineServerRpc();
             }
         }
-        
-        #endregion ChargeAllBatteries
-        
-        #region DischargeAllBatteries
 
-        [ServerRpc(RequireOwnership = false)]
-        void DischargeAllBatteriesServerRpc()
+        IEnumerator WaitForSeconds()
         {
-            DischargeAllBatteriesClientRpc();
+            yield return new WaitForSeconds(NextFloat(rng, 2f, 8f));
         }
 
-        [ClientRpc]
-        void DischargeAllBatteriesClientRpc()
-        {
-            logger.LogInfo("ButtonAI::DischargeAllBatteriesClientRpc");
-            List<GrabbableObject> batteryObjects = FindObjectsOfType<GrabbableObject>().ToList();
-            foreach (GrabbableObject batteryObject in batteryObjects)
-            {
-                logger.LogInfo("Item=" + batteryObject.name + ", chargeBefore=" + batteryObject.insertedBattery.charge + ", isEmptyBefore=" + batteryObject.insertedBattery.empty);
-                batteryObject.UseUpItemBatteriesServerRpc();
-                logger.LogInfo("Item=" + batteryObject.name + ", chargeAfter=" + batteryObject.insertedBattery.charge + ", isEmptyAfter=" + batteryObject.insertedBattery.empty);
-            }
-        }
+        #endregion ExplodeLandmines
         
-        #endregion DischargeAllBatteries
-
         #region SpawnScrap
 
         [ServerRpc(RequireOwnership = false)]
