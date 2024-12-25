@@ -103,7 +103,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                SwitchPlayersPositionServerRpc();
+                ChargeAllBatteriesServerRpc();
             }
             else
             {
@@ -134,7 +134,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                SwitchPlayersPositionServerRpc();
+                DischargeAllBatteriesServerRpc();
             }
             else
             {
@@ -335,8 +335,8 @@ namespace MysteryButton
             foreach (GrabbableObject batteryObject in batteryObjects)
             {
                 logger.LogInfo("Item=" + batteryObject.name + ", chargeBefore=" + batteryObject.insertedBattery.charge + ", isEmptyBefore=" + batteryObject.insertedBattery.empty);
-                batteryObject.insertedBattery.charge = 1f;
-                batteryObject.insertedBattery.empty = false;
+                batteryObject.ChargeBatteries();
+                logger.LogInfo("Item=" + batteryObject.name + ", chargeAfter=" + batteryObject.insertedBattery.charge + ", isEmptyAfter=" + batteryObject.insertedBattery.empty);
             }
         }
         
@@ -358,8 +358,8 @@ namespace MysteryButton
             foreach (GrabbableObject batteryObject in batteryObjects)
             {
                 logger.LogInfo("Item=" + batteryObject.name + ", chargeBefore=" + batteryObject.insertedBattery.charge + ", isEmptyBefore=" + batteryObject.insertedBattery.empty);
-                batteryObject.insertedBattery.charge = 0f;
-                batteryObject.insertedBattery.empty = true;
+                batteryObject.UseUpItemBatteriesServerRpc();
+                logger.LogInfo("Item=" + batteryObject.name + ", chargeAfter=" + batteryObject.insertedBattery.charge + ", isEmptyAfter=" + batteryObject.insertedBattery.empty);
             }
         }
         

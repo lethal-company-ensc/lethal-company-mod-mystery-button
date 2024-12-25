@@ -32,7 +32,7 @@ namespace MysteryButton
 				Logger.LogInfo($"Loaded {Bundles.Count} bundles : {string.Join(", ", Bundles)}");
 			}
 
-			AddEnemyFromBundle<ButtonAI>(Bundles.First(), "MysteryButton", "Mysterious Button", 10, Levels.LevelTypes.All, Enemies.SpawnType.Default);
+			AddEnemyFromBundle<ButtonAI>(Bundles.First(), "MysteryButton", "Mysterious Button", 80, Levels.LevelTypes.All, Enemies.SpawnType.Default);
 
 			Logger.LogInfo($"{MyPluginInfo.PLUGIN_GUID} v{MyPluginInfo.PLUGIN_VERSION} has loaded!");
 		}
