@@ -108,20 +108,25 @@ namespace MysteryButton
             }
             else
             {
-                if (effect < 40)
+                if (effect < 30)
                 {
                     SpawnScrapServerRpc();
                 }
-                else if (effect < 50)
+                else if (effect < 60)
+                {
+                    int amount = rng.Next(1, 6);
+                    SpawnScrapServerRpc(amount);
+                }
+                else if (effect < 90)
                 {
                     SpawnSpecificScrapServerRpc(1);
                 }
-                else if (effect < 51)
+                else if (effect < 91)
                 {
                     int amount = rng.Next(1, 11);
                     SpawnSpecificScrapServerRpc(amount);
                 }
-                else if (effect < 60)
+                else
                 {
                     ExplodeLandminesServerRpc();
                 }
@@ -139,19 +144,19 @@ namespace MysteryButton
             }
             else
             {
-                if (effect < 5)
+                if (effect < 20)
                 {
                     TeleportPlayerToRandomPositionServerRpc();
                 } 
-                else if (effect < 7)
+                else if (effect < 40)
                 {
                     SwitchPlayersPositionServerRpc();
                 }
-                else if (effect < 45)
+                else if (effect < 55)
                 {
                     PlayerDrunkServerRpc();
                 }
-                else if (effect < 50)
+                else if (effect < 60)
                 {
                     RandomPlayerIncreaseInsanityServerRpc();
                 }
@@ -339,6 +344,13 @@ namespace MysteryButton
         #endregion ExplodeLandmines
         
         #region SpawnScrap
+        
+        [ServerRpc(RequireOwnership = false)]
+        void SpawnScrapServerRpc(int amount)
+        {
+            logger.LogInfo("ButtonAI::SpawnScrapServerRpc");
+            SpawnScrap(null, amount);
+        }
 
         [ServerRpc(RequireOwnership = false)]
         void SpawnScrapServerRpc()
