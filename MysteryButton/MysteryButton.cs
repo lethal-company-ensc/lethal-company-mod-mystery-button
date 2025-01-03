@@ -32,7 +32,7 @@ namespace MysteryButton
 				Logger.LogInfo($"Loaded {Bundles.Count} bundles : {string.Join(", ", Bundles)}");
 			}
 
-			AddEnemyFromBundle<ButtonAI>(Bundles.First(), "MysteryButton", "Mysterious Button", 80, Levels.LevelTypes.All, Enemies.SpawnType.Default);
+			AddEnemyFromBundle<ButtonAI>(Bundles.First(), "MysteryButton", "Mystery Button", 80, Levels.LevelTypes.All, Enemies.SpawnType.Default);
 
 			Logger.LogInfo($"{MyPluginInfo.PLUGIN_GUID} v{MyPluginInfo.PLUGIN_VERSION} has loaded!");
 		}
@@ -89,7 +89,7 @@ namespace MysteryButton
 
 		protected void AddEnemyFromBundle<T>(AssetBundle bundle, string name, string nameInTerminal, int rarity, Levels.LevelTypes levelTypes, Enemies.SpawnType spawnType) where T : EnemyAI
 		{
-			EnemyType enemyType = bundle.LoadAsset<EnemyType>("MysteriousButtonET");
+			EnemyType enemyType = bundle.LoadAsset<EnemyType>("MysteryButtonET");
 			if (enemyType == null || enemyType.enemyPrefab == null)
 			{
 				Logger.LogError($"Could not load enemy {name} from bundle {bundle.name}.");
@@ -98,14 +98,14 @@ namespace MysteryButton
 
 			Logger.LogInfo($"Loaded enemy {name} from bundle {bundle.name}.");
 			
-			var terminalNode = bundle.LoadAsset<TerminalNode>("MysteriousButtonTN");
+			var terminalNode = bundle.LoadAsset<TerminalNode>("MysteryButtonTN");
 			if (terminalNode == null)
 			{
 				Logger.LogError($"Could not load {name} terminal node from {bundle.name}.");
 				return;
 			}
 			
-			var terminalKeyword = bundle.LoadAsset<TerminalKeyword>("MysteriousButtonTK");
+			var terminalKeyword = bundle.LoadAsset<TerminalKeyword>("MysteryButtonTK");
 			if (terminalKeyword == null)
 			{
 				Logger.LogError($"Could not load {name} terminal keyword from {bundle.name}.");
