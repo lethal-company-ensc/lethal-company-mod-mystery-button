@@ -30,6 +30,12 @@ namespace MysteryButton
 
         private int id;
 
+        private AudioClip buttonUsedClip;
+
+        private AudioClip buttonUsedMalusClip;
+
+        private AudioClip playerMalusClip;
+
         public override void Start()
         {
             logger.LogInfo("ButtonAI::Start");
@@ -37,6 +43,11 @@ namespace MysteryButton
             AudioSource audioSource = gameObject.GetComponent<AudioSource>();
             logger.LogInfo("AudioSource is " + (audioSource ? " not null" : "null"));
             creatureSFX = gameObject.GetComponent<AudioSource>();
+            
+            AudioClip[] audioClips = enemyType?.audioClips ?? [];
+            buttonUsedClip = audioClips[0];
+            buttonUsedMalusClip = audioClips[1];
+            playerMalusClip = audioClips[2];
 
             id = cpt++;
             enemyHP = 100;
@@ -81,7 +92,9 @@ namespace MysteryButton
                     int effect = rng.Next(0, 100);
                     logger.LogInfo("effect=" + effect);
 
-                    if (effect < 50)
+                    bool isBonus = effect < 50;
+
+                    if (isBonus)
                     {
                         logger.LogInfo("Bonus effect");
                         DoBonusEffect(player);
@@ -92,7 +105,7 @@ namespace MysteryButton
                         DoMalusEffect(player);
                     }
 
-                    KillEnemyServerRpc();
+                    KillButtonServerRpc(isBonus);
                 }
             }
         }
@@ -104,27 +117,28 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                ExplodeLandminesServerRpc();
+                int amount = rng.Next(1, 6);
+                SpawnScrapServerRpc(player?.name, amount);
             }
             else
             {
                 if (effect < 30)
                 {
-                    SpawnScrapServerRpc();
+                    SpawnScrapServerRpc(player?.name);
                 }
                 else if (effect < 60)
                 {
                     int amount = rng.Next(1, 6);
-                    SpawnScrapServerRpc(amount);
+                    SpawnScrapServerRpc(player?.name, amount);
                 }
                 else if (effect < 90)
                 {
-                    SpawnSpecificScrapServerRpc(1);
+                    SpawnSpecificScrapServerRpc(player?.name, 1);
                 }
                 else if (effect < 91)
                 {
                     int amount = rng.Next(1, 11);
-                    SpawnSpecificScrapServerRpc(amount);
+                    SpawnSpecificScrapServerRpc(player?.name, amount);
                 }
                 else
                 {
@@ -140,7 +154,8 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                ExplodeLandminesServerRpc();
+                int amount = rng.Next(1, 6);
+                SpawnScrapServerRpc(entity?.name, amount);
             }
             else
             {
@@ -184,20 +199,27 @@ namespace MysteryButton
             }
         }
 
-        #region KillEnemy
+        #region KillButton
         [ServerRpc(RequireOwnership = false)]
-        public void KillEnemyServerRpc()
+        public void KillButtonServerRpc(bool isBonus)
         {
-            KillEnemyClientRpc();
+            KillButtonClientRpc(isBonus);
         }
 
         [ClientRpc]
-        public void KillEnemyClientRpc()
+        public void KillButtonClientRpc(bool isBonus)
         {
-            logger.LogInfo("ButtonAI::KillEnemyClientRpc");
-            if (creatureSFX && enemyType?.deathSFX)
+            logger.LogInfo("ButtonAI::KillButtonClientRpc");
+            if (creatureSFX)
             {
-                creatureSFX.PlayOneShot(enemyType?.deathSFX);
+                if (isBonus)
+                {
+                    creatureSFX.PlayOneShot(buttonUsedClip);
+                }
+                else
+                {
+                    creatureSFX.PlayOneShot(buttonUsedMalusClip);
+                }
             }
 
             Animator animator = gameObject.GetComponentInChildren<Animator>();
@@ -247,6 +269,7 @@ namespace MysteryButton
                 PlayerControllerB[] currentPlayers = GetActivePlayers().Where(player => player.playerSteamId != 0).ToArray();
                 PlayerControllerB player = currentPlayers[rng.Next(currentPlayers.Length)];
                 player.insanityLevel = player.maxInsanityLevel;
+                player.movementAudio.PlayOneShot(playerMalusClip);
                 logger.LogInfo("Client: Apply max insanity to " + player.playerUsername);
             }
         }
@@ -346,40 +369,43 @@ namespace MysteryButton
         #region SpawnScrap
         
         [ServerRpc(RequireOwnership = false)]
-        void SpawnScrapServerRpc(int amount)
+        void SpawnScrapServerRpc(string? entityName, int amount)
         {
             logger.LogInfo("ButtonAI::SpawnScrapServerRpc");
-            SpawnScrap(null, amount);
+            SpawnScrap(entityName, null, amount);
         }
 
         [ServerRpc(RequireOwnership = false)]
-        void SpawnScrapServerRpc()
+        void SpawnScrapServerRpc(string? entityName)
         {
             logger.LogInfo("ButtonAI::SpawnScrapServerRpc");
-            SpawnScrap(null, 1);
+            SpawnScrap(entityName, null, 1);
         }
 
         [ServerRpc(RequireOwnership = false)]
-        void SpawnSpecificScrapServerRpc(int amount)
+        void SpawnSpecificScrapServerRpc(string? entityName, int amount)
         {
             logger.LogInfo("ButtonAI::SpawnSpecificScrapServerRpc");
             List<Item> allScrapList = StartOfRound.Instance.allItemsList.itemsList.Where((item) => item.isScrap && item.maxValue > 150).ToList();
-            SpawnScrap(allScrapList[rng.Next(0, allScrapList.Count - 1)], amount);
+            SpawnScrap(entityName, allScrapList[rng.Next(0, allScrapList.Count - 1)], amount);
         }
 
-        void SpawnScrap(Item? specificScrap, int amount)
+        void SpawnScrap(string? entityName, Item? specificScrap, int amount)
         {
             List<Item> allScrapList = StartOfRound.Instance.allItemsList.itemsList.Where((item) => item.isScrap).ToList();
             int allItemListSize = allScrapList.Count;
 
+            var player = GetPlayerByNameOrFirstOne(name);
+            
             for (int i = 0; i < amount; i++)
             {
-                int randomIndex = rng.Next(0, RoundManager.Instance.insideAINodes.Length);
                 int allItemListIndex = rng.Next(0, allItemListSize);
                 Item randomItem = specificScrap ?? allScrapList[allItemListIndex];
 
-                GameObject obj = Instantiate(randomItem.spawnPrefab,
-                    RoundManager.Instance.insideAINodes[randomIndex].transform.position, Quaternion.identity);
+                float angle = NextFloat(rng, 0, 2f * Mathf.PI);
+                Vector3 position = player.transform.position + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * NextFloat(rng, 1f, 2f);
+                
+                GameObject obj = Instantiate(randomItem.spawnPrefab, position, Quaternion.identity);
 
                 int value = rng.Next(randomItem.minValue, randomItem.maxValue);
                 float weight = randomItem.weight;
