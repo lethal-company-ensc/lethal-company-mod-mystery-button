@@ -189,6 +189,10 @@ namespace MysteryButton
                 {
                     RandomPlayerIncreaseInsanityServerRpc();
                 }
+                else if (effect < 70)
+                {
+                    BerserkTurretServerRpc(entity?.name);
+                }
                 else if (effect < 80)
                 {
                     SpawnEnemyServerRpc(1);
@@ -654,8 +658,7 @@ namespace MysteryButton
 
             foreach (var turret in turrets)
             {
-                // turret.EnterBerserkModeServerRpc(playerIndex);
-                // turret.EnterBerserkModeClientRpc(playerIndex);
+                turret.SwitchTurretMode((int) TurretMode.Berserk);
             }
         }
 
