@@ -37,7 +37,7 @@ namespace MysteryButton
 
         private AudioClip buttonUsedMalusClip;
 
-        private AudioClip playerMalusClip;
+        private List<AudioClip> playerMalusClips;
 
         private bool canExplodeLandmines;
 
@@ -52,7 +52,11 @@ namespace MysteryButton
             AudioClip[] audioClips = enemyType?.audioClips ?? [];
             buttonUsedClip = audioClips[0];
             buttonUsedMalusClip = audioClips[1];
-            playerMalusClip = audioClips[2];
+            playerMalusClips =
+            [
+                audioClips[2],
+                audioClips[3]
+            ];
 
             id = cpt++;
             enemyHP = 100;
@@ -426,7 +430,8 @@ namespace MysteryButton
                 PlayerControllerB player = currentPlayers[rng.Next(currentPlayers.Length)];
                 player.insanityLevel = player.maxInsanityLevel;
                 player.JumpToFearLevel(1.25F);
-                player.movementAudio.PlayOneShot(playerMalusClip);
+                player.movementAudio.PlayOneShot(playerMalusClips[rng.Next(0, playerMalusClips.Count)]);
+                player.JumpToFearLevel(1.25f);
                 logger.LogInfo("Client: Apply max insanity to " + player.playerUsername);
             }
         }
