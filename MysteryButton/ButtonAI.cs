@@ -129,7 +129,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                RevivePlayerServerRpc(player?.name);
+                RandomPlayerIncreaseInsanityServerRpc();
             }
             else
             {
@@ -169,7 +169,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                RevivePlayerServerRpc(entity?.name);
+                RandomPlayerIncreaseInsanityServerRpc();
             }
             else
             {
@@ -425,6 +425,7 @@ namespace MysteryButton
                     .ToArray();
                 PlayerControllerB player = currentPlayers[rng.Next(currentPlayers.Length)];
                 player.insanityLevel = player.maxInsanityLevel;
+                player.JumpToFearLevel(1.25F);
                 player.movementAudio.PlayOneShot(playerMalusClip);
                 logger.LogInfo("Client: Apply max insanity to " + player.playerUsername);
             }
