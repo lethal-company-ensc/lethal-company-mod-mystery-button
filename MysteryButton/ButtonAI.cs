@@ -9,6 +9,7 @@ using BepInEx.Logging;
 using GameNetcodeStuff;
 using UnityEngine;
 using Unity.Netcode;
+using UnityEngine.InputSystem.Utilities;
 using Logger = BepInEx.Logging.Logger;
 using Random = System.Random;
 
@@ -36,6 +37,8 @@ namespace MysteryButton
 
         private AudioClip playerMalusClip;
 
+        private bool canExplodeLandmines;
+
         public override void Start()
         {
             logger.LogInfo("ButtonAI::Start");
@@ -58,6 +61,9 @@ namespace MysteryButton
             {
                 creatureSFX.PlayOneShot(enemyType?.overrideVentSFX);
             }
+            
+            List<Landmine> landmines = FindObjectsOfType<Landmine>().Where(mine => !mine.hasExploded).ToList();
+            canExplodeLandmines = landmines.Count > 0;
 
             base.Start();
         }
@@ -117,8 +123,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                int amount = rng.Next(1, 6);
-                SpawnScrapServerRpc(player?.name, amount);
+                RevivePlayerServerRpc(player?.name);
             }
             else
             {
@@ -140,9 +145,13 @@ namespace MysteryButton
                     int amount = rng.Next(1, 11);
                     SpawnSpecificScrapServerRpc(player?.name, amount);
                 }
-                else
+                else if (canExplodeLandmines)
                 {
                     ExplodeLandminesServerRpc();
+                }
+                else
+                {
+                    RevivePlayerServerRpc(player?.name);
                 }
             }
         }
@@ -154,8 +163,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                int amount = rng.Next(1, 6);
-                SpawnScrapServerRpc(entity?.name, amount);
+                RevivePlayerServerRpc(entity?.name);
             }
             else
             {
@@ -252,6 +260,137 @@ namespace MysteryButton
             }
         }
         #endregion PlayerDrunk
+        
+        #region RevivePlayer
+        [ServerRpc(RequireOwnership = false)]
+        void RevivePlayerServerRpc(string? name)
+        {
+            logger.LogInfo("ButtonAI:RevivePlayerServerRpc");
+            var player = GetPlayerByNameOrFirstOne(name);
+            var deadPlayers = StartOfRound.Instance.allPlayerScripts.Where((p) => p.isPlayerDead).ToList();
+            if (deadPlayers.Count > 0)
+            {
+                var deadPlayer = deadPlayers[rng.Next(0, deadPlayers.Count)];
+                RevivePlayerClientRpc(name, deadPlayer.name);
+                TeleportPlayerToPositionClientRpc(deadPlayer.name, player.transform.position);
+            }
+        }
+
+        [ClientRpc]
+        void RevivePlayerClientRpc(string? playerName, string? deadPlayerName)
+        {
+            logger.LogInfo("ButtonAI:RevivePlayerClientRpc");
+            StartOfRound instance = StartOfRound.Instance;
+            var player = GetPlayerByNameOrFirstOne(playerName);
+            var deadPlayer = GetPlayerByNameOrFirstOne(deadPlayerName);
+            var deadPlayerIndex = instance.allPlayerScripts.IndexOf(p => p.name == deadPlayer.name);
+            
+            logger.LogInfo("Client: Trying to revive " + deadPlayer.playerUsername + " with index=" + deadPlayerIndex);
+            int health = 100;
+            deadPlayer.ResetPlayerBloodObjects(deadPlayer.isPlayerDead);
+
+            if (deadPlayer.isPlayerDead || deadPlayer.isPlayerControlled)
+            {
+                deadPlayer.isClimbingLadder = false;
+                deadPlayer.inVehicleAnimation = false;
+                deadPlayer.ResetZAndXRotation();
+                deadPlayer.thisController.enabled = true;
+                deadPlayer.health = health;
+                deadPlayer.disableLookInput = false;
+                
+                if (deadPlayer.isPlayerDead)
+                {
+                    deadPlayer.isPlayerDead = false;
+                    deadPlayer.isPlayerControlled = true;
+                    deadPlayer.isInElevator = false;
+                    deadPlayer.isInHangarShipRoom = false;
+                    deadPlayer.isInsideFactory = player.isInsideFactory;
+                    StartOfRound.Instance.SetPlayerObjectExtrapolate(false);
+                    deadPlayer.setPositionOfDeadPlayer = false;
+                    deadPlayer.helmetLight.enabled = false;
+                    deadPlayer.Crouch(false);
+                    deadPlayer.criticallyInjured = false;
+                    
+                    if (deadPlayer.playerBodyAnimator != null)
+                    {
+                        deadPlayer.playerBodyAnimator.SetBool("Limp", false);
+                    }
+                    
+                    deadPlayer.bleedingHeavily = false;
+                    deadPlayer.activatingItem = false;
+                    deadPlayer.twoHanded = false;
+                    deadPlayer.inSpecialInteractAnimation = false;
+                    deadPlayer.disableSyncInAnimation = false;
+                    deadPlayer.inAnimationWithEnemy = null;
+                    deadPlayer.holdingWalkieTalkie = false;
+                    deadPlayer.speakingToWalkieTalkie = false;
+                    deadPlayer.isSinking = false;
+                    deadPlayer.isUnderwater = false;
+                    deadPlayer.sinkingValue = 0f;
+                    deadPlayer.statusEffectAudio.Stop();
+                    deadPlayer.DisableJetpackControlsLocally();
+                    deadPlayer.health = health;
+                    deadPlayer.mapRadarDotAnimator.SetBool("dead", false);
+                    deadPlayer.deadBody = null;
+                    
+                    if (deadPlayer == GameNetworkManager.Instance.localPlayerController)
+                    {
+                        HUDManager.Instance.gasHelmetAnimator.SetBool("gasEmitting", false);
+                        deadPlayer.hasBegunSpectating = false;
+                        HUDManager.Instance.RemoveSpectateUI();
+                        HUDManager.Instance.gameOverAnimator.SetTrigger("revive");
+                        deadPlayer.hinderedMultiplier = 1f;
+                        deadPlayer.isMovementHindered = 0;
+                        deadPlayer.sourcesCausingSinking = 0;
+                        HUDManager.Instance.HideHUD(false);
+                    }
+                }
+                
+                SoundManager.Instance.earsRingingTimer = 0f;
+                deadPlayer.voiceMuffledByEnemy = false;
+                
+                if (deadPlayer.currentVoiceChatIngameSettings == null)
+                {
+                    StartOfRound.Instance.RefreshPlayerVoicePlaybackObjects();
+                }
+                
+                if (deadPlayer.currentVoiceChatIngameSettings != null)
+                {
+                    if (deadPlayer.currentVoiceChatIngameSettings.voiceAudio == null)
+                    {
+                        deadPlayer.currentVoiceChatIngameSettings.InitializeComponents();
+                    }
+                    
+                    if (deadPlayer.currentVoiceChatIngameSettings.voiceAudio != null)
+                    {
+                        deadPlayer.currentVoiceChatIngameSettings.voiceAudio.GetComponent<OccludeAudio>().overridingLowPass = false;
+                    }
+                }
+            }
+            
+            StartOfRound.Instance.livingPlayers++;
+            if (GameNetworkManager.Instance.localPlayerController == deadPlayer)
+            {
+                deadPlayer.bleedingHeavily = false;
+                deadPlayer.criticallyInjured = false;
+                deadPlayer.playerBodyAnimator?.SetBool("Limp", false);
+                deadPlayer.health = health;
+                HUDManager.Instance.UpdateHealthUI(health, false);
+                deadPlayer.spectatedPlayerScript = null;
+                HUDManager.Instance.audioListenerLowPass.enabled = false;
+                StartOfRound.Instance.SetSpectateCameraToGameOverMode(false, deadPlayer);
+                TimeOfDay.Instance.DisableAllWeather(false);
+                StartOfRound.Instance.UpdatePlayerVoiceEffects();
+                deadPlayer.thisPlayerModel.enabled = true;
+            }
+            else
+            {
+                deadPlayer.thisPlayerModel.enabled = true;
+                deadPlayer.thisPlayerModelLOD1.enabled = true;
+                deadPlayer.thisPlayerModelLOD2.enabled = true;
+            }
+        }
+        #endregion RevivePlayer
 
         #region RandomPlayerIncreaseInsanity
         [ServerRpc(RequireOwnership = false)]
@@ -358,12 +497,6 @@ namespace MysteryButton
                 landmine.ExplodeMineServerRpc();
             }
         }
-
-        IEnumerator WaitForSeconds()
-        {
-            yield return new WaitForSeconds(NextFloat(rng, 2f, 8f));
-        }
-
         #endregion ExplodeLandmines
         
         #region SpawnScrap
@@ -498,6 +631,32 @@ namespace MysteryButton
 
         #endregion TeleportPlayerToRandomPosition
         
+        #region TeleportPlayerToPosition
+        
+        [ClientRpc]
+        void TeleportPlayerToPositionClientRpc(string? name, Vector3 pos)
+        {
+            logger.LogInfo("ButtonAI::TeleportPlayerToPositionClientRpc");
+            PlayerControllerB player = GetPlayerByNameOrFirstOne(name);
+            
+            if ((bool) (UnityEngine.Object) FindObjectOfType<AudioReverbPresets>())
+                FindObjectOfType<AudioReverbPresets>().audioPresets[2].ChangeAudioReverbForPlayer(player);
+            player.isInElevator = false;
+            player.isInHangarShipRoom = false;
+            player.isInsideFactory = true;
+            player.averageVelocity = 0.0f;
+            player.velocityLastFrame = Vector3.zero;
+            player.TeleportPlayer(pos);
+            player.beamOutParticle.Play();
+
+            ShipTeleporter shipTeleporter = FindObjectOfType<ShipTeleporter>();
+            if (shipTeleporter)
+            {
+                player.movementAudio.PlayOneShot(shipTeleporter.teleporterBeamUpSFX);
+            }
+        }
+        #endregion TeleportPlayerToPosition
+        
         #region SwitchPlayerPosition
 
         [ServerRpc(RequireOwnership = false)]
@@ -576,7 +735,7 @@ namespace MysteryButton
         private static List<PlayerControllerB> GetActivePlayers()
         {
             List<PlayerControllerB> activePlayers = [];
-            activePlayers.AddRange(StartOfRound.Instance.allPlayerScripts.Where(player => player.isActiveAndEnabled && player.playerSteamId > 0).ToList());
+            activePlayers.AddRange(StartOfRound.Instance.allPlayerScripts.Where(player => player.isActiveAndEnabled && player.playerSteamId > 0 && player.isPlayerControlled).ToList());
             return activePlayers;
         }
         
