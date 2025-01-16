@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 using System.Timers;
 using BepInEx.Logging;
 using GameNetcodeStuff;
-using UnityEngine;
 using Unity.Netcode;
+using UnityEngine;
 using UnityEngine.InputSystem.Utilities;
 using Logger = BepInEx.Logging.Logger;
 using Random = System.Random;
@@ -21,8 +21,10 @@ namespace MysteryButton
 
         private static bool IS_TEST = false;
 
-        internal static ManualLogSource logger = Logger.CreateLogSource("Elirasza.MysteryButton.ButtonAI");
-        
+        internal static ManualLogSource logger = Logger.CreateLogSource(
+            "Elirasza.MysteryButton.ButtonAI"
+        );
+
         private static readonly int PlayDeath = Animator.StringToHash("playDeath");
 
         private Random rng;
@@ -46,7 +48,7 @@ namespace MysteryButton
             AudioSource audioSource = gameObject.GetComponent<AudioSource>();
             logger.LogInfo("AudioSource is " + (audioSource ? " not null" : "null"));
             creatureSFX = gameObject.GetComponent<AudioSource>();
-            
+
             AudioClip[] audioClips = enemyType?.audioClips ?? [];
             buttonUsedClip = audioClips[0];
             buttonUsedMalusClip = audioClips[1];
@@ -61,8 +63,10 @@ namespace MysteryButton
             {
                 creatureSFX.PlayOneShot(enemyType?.overrideVentSFX);
             }
-            
-            List<Landmine> landmines = FindObjectsOfType<Landmine>().Where(mine => !mine.hasExploded).ToList();
+
+            List<Landmine> landmines = FindObjectsOfType<Landmine>()
+                .Where(mine => !mine.hasExploded)
+                .ToList();
             canExplodeLandmines = landmines.Count > 0;
 
             base.Start();
@@ -92,8 +96,10 @@ namespace MysteryButton
 
                 if (player != null)
                 {
-                    logger.LogInfo("ButtonAI::OnCollideWithPlayer, player EXISTS for collider " +
-                                   other.gameObject.name);
+                    logger.LogInfo(
+                        "ButtonAI::OnCollideWithPlayer, player EXISTS for collider "
+                            + other.gameObject.name
+                    );
 
                     int effect = rng.Next(0, 100);
                     logger.LogInfo("effect=" + effect);
@@ -170,7 +176,7 @@ namespace MysteryButton
                 if (effect < 20)
                 {
                     TeleportPlayerToRandomPositionServerRpc();
-                } 
+                }
                 else if (effect < 40)
                 {
                     SwitchPlayersPositionServerRpc();
@@ -260,14 +266,16 @@ namespace MysteryButton
             }
         }
         #endregion PlayerDrunk
-        
+
         #region RevivePlayer
         [ServerRpc(RequireOwnership = false)]
         void RevivePlayerServerRpc(string? name)
         {
             logger.LogInfo("ButtonAI:RevivePlayerServerRpc");
             var player = GetPlayerByNameOrFirstOne(name);
-            var deadPlayers = StartOfRound.Instance.allPlayerScripts.Where((p) => p.isPlayerDead).ToList();
+            var deadPlayers = StartOfRound
+                .Instance.allPlayerScripts.Where((p) => p.isPlayerDead)
+                .ToList();
             if (deadPlayers.Count > 0)
             {
                 var deadPlayer = deadPlayers[rng.Next(0, deadPlayers.Count)];
@@ -284,8 +292,13 @@ namespace MysteryButton
             var player = GetPlayerByNameOrFirstOne(playerName);
             var deadPlayer = GetPlayerByNameOrFirstOne(deadPlayerName);
             var deadPlayerIndex = instance.allPlayerScripts.IndexOf(p => p.name == deadPlayer.name);
-            
-            logger.LogInfo("Client: Trying to revive " + deadPlayer.playerUsername + " with index=" + deadPlayerIndex);
+
+            logger.LogInfo(
+                "Client: Trying to revive "
+                    + deadPlayer.playerUsername
+                    + " with index="
+                    + deadPlayerIndex
+            );
             int health = 100;
             deadPlayer.ResetPlayerBloodObjects(deadPlayer.isPlayerDead);
 
@@ -297,7 +310,7 @@ namespace MysteryButton
                 deadPlayer.thisController.enabled = true;
                 deadPlayer.health = health;
                 deadPlayer.disableLookInput = false;
-                
+
                 if (deadPlayer.isPlayerDead)
                 {
                     deadPlayer.isPlayerDead = false;
@@ -310,12 +323,12 @@ namespace MysteryButton
                     deadPlayer.helmetLight.enabled = false;
                     deadPlayer.Crouch(false);
                     deadPlayer.criticallyInjured = false;
-                    
+
                     if (deadPlayer.playerBodyAnimator != null)
                     {
                         deadPlayer.playerBodyAnimator.SetBool("Limp", false);
                     }
-                    
+
                     deadPlayer.bleedingHeavily = false;
                     deadPlayer.activatingItem = false;
                     deadPlayer.twoHanded = false;
@@ -332,7 +345,7 @@ namespace MysteryButton
                     deadPlayer.health = health;
                     deadPlayer.mapRadarDotAnimator.SetBool("dead", false);
                     deadPlayer.deadBody = null;
-                    
+
                     if (deadPlayer == GameNetworkManager.Instance.localPlayerController)
                     {
                         HUDManager.Instance.gasHelmetAnimator.SetBool("gasEmitting", false);
@@ -345,29 +358,31 @@ namespace MysteryButton
                         HUDManager.Instance.HideHUD(false);
                     }
                 }
-                
+
                 SoundManager.Instance.earsRingingTimer = 0f;
                 deadPlayer.voiceMuffledByEnemy = false;
-                
+
                 if (deadPlayer.currentVoiceChatIngameSettings == null)
                 {
                     StartOfRound.Instance.RefreshPlayerVoicePlaybackObjects();
                 }
-                
+
                 if (deadPlayer.currentVoiceChatIngameSettings != null)
                 {
                     if (deadPlayer.currentVoiceChatIngameSettings.voiceAudio == null)
                     {
                         deadPlayer.currentVoiceChatIngameSettings.InitializeComponents();
                     }
-                    
+
                     if (deadPlayer.currentVoiceChatIngameSettings.voiceAudio != null)
                     {
-                        deadPlayer.currentVoiceChatIngameSettings.voiceAudio.GetComponent<OccludeAudio>().overridingLowPass = false;
+                        deadPlayer
+                            .currentVoiceChatIngameSettings.voiceAudio.GetComponent<OccludeAudio>()
+                            .overridingLowPass = false;
                     }
                 }
             }
-            
+
             StartOfRound.Instance.livingPlayers++;
             if (GameNetworkManager.Instance.localPlayerController == deadPlayer)
             {
@@ -405,7 +420,9 @@ namespace MysteryButton
             logger.LogInfo("ButtonAI::RandomPlayerIncreaseInsanityClientRpc");
             if (StartOfRound.Instance != null)
             {
-                PlayerControllerB[] currentPlayers = GetActivePlayers().Where(player => player.playerSteamId != 0).ToArray();
+                PlayerControllerB[] currentPlayers = GetActivePlayers()
+                    .Where(player => player.playerSteamId != 0)
+                    .ToArray();
                 PlayerControllerB player = currentPlayers[rng.Next(currentPlayers.Length)];
                 player.insanityLevel = player.maxInsanityLevel;
                 player.movementAudio.PlayOneShot(playerMalusClip);
@@ -426,7 +443,7 @@ namespace MysteryButton
         {
             logger.LogInfo("ButtonAI::OpenAllDoorsClientRpc");
             var player = GetPlayerByNameOrFirstOne(name);
-            
+
             List<DoorLock> doors = FindObjectsOfType<DoorLock>().ToList();
             foreach (DoorLock door in doors)
             {
@@ -482,14 +499,16 @@ namespace MysteryButton
             }
         }
         #endregion CloseAllDoors
-        
+
         #region ExplodeLandmines
 
         [ServerRpc(RequireOwnership = false)]
         void ExplodeLandminesServerRpc()
         {
             logger.LogInfo("ButtonAI::ExplodeLandminesServerRpc");
-            List<Landmine> landmines = FindObjectsOfType<Landmine>().Where(mine => !mine.hasExploded).ToList();
+            List<Landmine> landmines = FindObjectsOfType<Landmine>()
+                .Where(mine => !mine.hasExploded)
+                .ToList();
             logger.LogInfo(landmines.Count + " landmines found");
             foreach (var landmine in landmines)
             {
@@ -498,9 +517,9 @@ namespace MysteryButton
             }
         }
         #endregion ExplodeLandmines
-        
+
         #region SpawnScrap
-        
+
         [ServerRpc(RequireOwnership = false)]
         void SpawnScrapServerRpc(string? entityName, int amount)
         {
@@ -519,37 +538,51 @@ namespace MysteryButton
         void SpawnSpecificScrapServerRpc(string? entityName, int amount)
         {
             logger.LogInfo("ButtonAI::SpawnSpecificScrapServerRpc");
-            List<Item> allScrapList = StartOfRound.Instance.allItemsList.itemsList.Where((item) => item.isScrap && item.maxValue > 150).ToList();
+            List<Item> allScrapList = StartOfRound
+                .Instance.allItemsList.itemsList.Where(
+                    (item) => item.isScrap && item.maxValue > 150
+                )
+                .ToList();
             SpawnScrap(entityName, allScrapList[rng.Next(0, allScrapList.Count - 1)], amount);
         }
 
         void SpawnScrap(string? entityName, Item? specificScrap, int amount)
         {
-            List<Item> allScrapList = StartOfRound.Instance.allItemsList.itemsList.Where((item) => item.isScrap).ToList();
+            List<Item> allScrapList = StartOfRound
+                .Instance.allItemsList.itemsList.Where((item) => item.isScrap)
+                .ToList();
             int allItemListSize = allScrapList.Count;
 
             var player = GetPlayerByNameOrFirstOne(name);
-            
+
             for (int i = 0; i < amount; i++)
             {
                 int allItemListIndex = rng.Next(0, allItemListSize);
                 Item randomItem = specificScrap ?? allScrapList[allItemListIndex];
 
                 float angle = NextFloat(rng, 0, 2f * Mathf.PI);
-                Vector3 position = player.transform.position + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * NextFloat(rng, 1f, 2f);
-                
+                Vector3 position =
+                    player.transform.position
+                    + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * NextFloat(rng, 1f, 2f);
+
                 GameObject obj = Instantiate(randomItem.spawnPrefab, position, Quaternion.identity);
 
                 int value = rng.Next(randomItem.minValue, randomItem.maxValue);
                 float weight = randomItem.weight;
 
-                logger.LogInfo("Spawning item=" + randomItem.name + ", value=" + value + ", weight=" + weight);
+                logger.LogInfo(
+                    "Spawning item=" + randomItem.name + ", value=" + value + ", weight=" + weight
+                );
 
                 ScanNodeProperties scan = obj.GetComponent<ScanNodeProperties>();
                 if (scan == null)
                 {
-                    logger.LogInfo("No scan found, creating with scrapValue=" + value + " and subText=" +
-                                   $"\"Value: ${value}\"");
+                    logger.LogInfo(
+                        "No scan found, creating with scrapValue="
+                            + value
+                            + " and subText="
+                            + $"\"Value: ${value}\""
+                    );
                     scan = obj.AddComponent<ScanNodeProperties>();
                     scan.scrapValue = value;
                     scan.subText = $"Value: ${value.ToString()}";
@@ -566,7 +599,7 @@ namespace MysteryButton
         }
 
         #endregion SpawnScrap
-        
+
         #region SpawnEnemy
 
         [ServerRpc(RequireOwnership = false)]
@@ -584,15 +617,18 @@ namespace MysteryButton
 
                 logger.LogInfo("Spawning enemy=" + randomEnemy.enemyType.name);
 
-                GameObject obj = Instantiate(randomEnemy.enemyType.enemyPrefab,
-                    RoundManager.Instance.allEnemyVents[randomIndex].transform.position, Quaternion.identity);
+                GameObject obj = Instantiate(
+                    randomEnemy.enemyType.enemyPrefab,
+                    RoundManager.Instance.allEnemyVents[randomIndex].transform.position,
+                    Quaternion.identity
+                );
 
                 obj.GetComponent<NetworkObject>().Spawn(destroyWithScene: true);
             }
         }
 
         #endregion SpawnEnemy
-        
+
         #region TeleportPlayerToRandomPosition
 
         [ServerRpc(RequireOwnership = false)]
@@ -600,7 +636,7 @@ namespace MysteryButton
         {
             TeleportPlayerToRandomPositionClientRpc();
         }
-        
+
         [ClientRpc]
         void TeleportPlayerToRandomPositionClientRpc()
         {
@@ -608,12 +644,14 @@ namespace MysteryButton
             List<PlayerControllerB> players = GetActivePlayers();
             PlayerControllerB player = players[rng.Next(players.Count)];
             // PlayerControllerB player = GetPlayerByNameOrFirstOne(null);
-            
+
             int randomIndex = rng.Next(0, RoundManager.Instance.insideAINodes.Length);
             var teleportPos = RoundManager.Instance.insideAINodes[randomIndex].transform.position;
 
-            if ((bool) (UnityEngine.Object) FindObjectOfType<AudioReverbPresets>())
-                FindObjectOfType<AudioReverbPresets>().audioPresets[2].ChangeAudioReverbForPlayer(player);
+            if ((bool)(UnityEngine.Object)FindObjectOfType<AudioReverbPresets>())
+                FindObjectOfType<AudioReverbPresets>()
+                    .audioPresets[2]
+                    .ChangeAudioReverbForPlayer(player);
             player.isInElevator = false;
             player.isInHangarShipRoom = false;
             player.isInsideFactory = true;
@@ -630,17 +668,19 @@ namespace MysteryButton
         }
 
         #endregion TeleportPlayerToRandomPosition
-        
+
         #region TeleportPlayerToPosition
-        
+
         [ClientRpc]
         void TeleportPlayerToPositionClientRpc(string? name, Vector3 pos)
         {
             logger.LogInfo("ButtonAI::TeleportPlayerToPositionClientRpc");
             PlayerControllerB player = GetPlayerByNameOrFirstOne(name);
-            
-            if ((bool) (UnityEngine.Object) FindObjectOfType<AudioReverbPresets>())
-                FindObjectOfType<AudioReverbPresets>().audioPresets[2].ChangeAudioReverbForPlayer(player);
+
+            if ((bool)(UnityEngine.Object)FindObjectOfType<AudioReverbPresets>())
+                FindObjectOfType<AudioReverbPresets>()
+                    .audioPresets[2]
+                    .ChangeAudioReverbForPlayer(player);
             player.isInElevator = false;
             player.isInHangarShipRoom = false;
             player.isInsideFactory = true;
@@ -656,7 +696,7 @@ namespace MysteryButton
             }
         }
         #endregion TeleportPlayerToPosition
-        
+
         #region SwitchPlayerPosition
 
         [ServerRpc(RequireOwnership = false)]
@@ -664,18 +704,20 @@ namespace MysteryButton
         {
             SwitchPlayersPositionClientRpc();
         }
-        
+
         [ClientRpc]
         void SwitchPlayersPositionClientRpc()
         {
             logger.LogInfo("ButtonAI::SwitchPlayerPositionClientRpc");
-            
-            List<PlayerControllerB> players = GetActivePlayers().Where((player) => !player.isPlayerDead).ToList();
+
+            List<PlayerControllerB> players = GetActivePlayers()
+                .Where((player) => !player.isPlayerDead)
+                .ToList();
             if (players.Count < 2)
             {
                 return;
             }
-            
+
             PlayerControllerB player = players[rng.Next(players.Count)];
             PlayerControllerB player2;
 
@@ -683,17 +725,31 @@ namespace MysteryButton
             {
                 player2 = players[rng.Next(players.Count)];
             } while (player2.NetworkObjectId == player.NetworkObjectId);
-            
-            logger.LogInfo("Switching positions of " + player.playerUsername + " and " + player2.playerUsername);
+
+            logger.LogInfo(
+                "Switching positions of " + player.playerUsername + " and " + player2.playerUsername
+            );
 
             if ((bool)(UnityEngine.Object)FindObjectOfType<AudioReverbPresets>())
             {
-                FindObjectOfType<AudioReverbPresets>().audioPresets[2].ChangeAudioReverbForPlayer(player);
-                FindObjectOfType<AudioReverbPresets>().audioPresets[2].ChangeAudioReverbForPlayer(player2);
+                FindObjectOfType<AudioReverbPresets>()
+                    .audioPresets[2]
+                    .ChangeAudioReverbForPlayer(player);
+                FindObjectOfType<AudioReverbPresets>()
+                    .audioPresets[2]
+                    .ChangeAudioReverbForPlayer(player2);
             }
-            
-            Vector3 playerPos = new Vector3(player.transform.position.x, player.transform.position.y, player.transform.position.z);
-            Vector3 player2Pos = new Vector3(player2.transform.position.x, player2.transform.position.y, player2.transform.position.z);
+
+            Vector3 playerPos = new Vector3(
+                player.transform.position.x,
+                player.transform.position.y,
+                player.transform.position.z
+            );
+            Vector3 player2Pos = new Vector3(
+                player2.transform.position.x,
+                player2.transform.position.y,
+                player2.transform.position.z
+            );
 
             player.isInElevator = false;
             player.isInHangarShipRoom = false;
@@ -702,7 +758,7 @@ namespace MysteryButton
             player.velocityLastFrame = Vector3.zero;
             player.TeleportPlayer(player2Pos);
             player.beamOutParticle.Play();
-            
+
             player2.isInElevator = false;
             player2.isInHangarShipRoom = false;
             player2.isInsideFactory = true;
@@ -720,8 +776,9 @@ namespace MysteryButton
         }
 
         #endregion SwitchPlayerPosition
-        
-        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer)
+            where T : IReaderWriter
         {
             serializer.SerializeValue(ref id);
         }
@@ -729,22 +786,29 @@ namespace MysteryButton
         private static PlayerControllerB GetPlayerByNameOrFirstOne(string? name)
         {
             List<PlayerControllerB> activePlayers = GetActivePlayers();
-            return activePlayers.FirstOrDefault(x => x.name == name) ?? StartOfRound.Instance.allPlayerScripts[0];
+            return activePlayers.FirstOrDefault(x => x.name == name)
+                ?? StartOfRound.Instance.allPlayerScripts[0];
         }
 
         private static List<PlayerControllerB> GetActivePlayers()
         {
             List<PlayerControllerB> activePlayers = [];
-            activePlayers.AddRange(StartOfRound.Instance.allPlayerScripts.Where(player => player.isActiveAndEnabled && player.playerSteamId > 0 && player.isPlayerControlled).ToList());
+            activePlayers.AddRange(
+                StartOfRound
+                    .Instance.allPlayerScripts.Where(player =>
+                        player.isActiveAndEnabled && player.playerSteamId > 0
+                    )
+                    .ToList()
+            );
             return activePlayers;
         }
-        
+
         static float NextFloat(Random random, float rangeMin, float rangeMax)
         {
-            double range = (double) rangeMin - (double) rangeMax;
+            double range = (double)rangeMin - (double)rangeMax;
             double sample = random.NextDouble();
             double scaled = (sample * range) + rangeMin;
-            return (float) scaled;
+            return (float)scaled;
         }
     }
 }
