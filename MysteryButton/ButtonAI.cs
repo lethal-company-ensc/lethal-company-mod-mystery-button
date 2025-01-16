@@ -712,6 +712,7 @@ namespace MysteryButton
 
             List<PlayerControllerB> players = GetActivePlayers()
                 .Where((player) => !player.isPlayerDead)
+                .Where((player) => player.isPlayerControlled)
                 .ToList();
             if (players.Count < 2)
             {
