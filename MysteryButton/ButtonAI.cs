@@ -52,11 +52,7 @@ namespace MysteryButton
             AudioClip[] audioClips = enemyType?.audioClips ?? [];
             buttonUsedClip = audioClips[0];
             buttonUsedMalusClip = audioClips[1];
-            playerMalusClips =
-            [
-                audioClips[2],
-                audioClips[3]
-            ];
+            playerMalusClips = [audioClips[2], audioClips[3]];
 
             id = cpt++;
             enemyHP = 100;
@@ -192,10 +188,6 @@ namespace MysteryButton
                 else if (effect < 60)
                 {
                     RandomPlayerIncreaseInsanityServerRpc();
-                }
-                else if (effect < 70)
-                {
-                    BerserkTurretServerRpc(entity?.name);
                 }
                 else if (effect < 80)
                 {
@@ -434,7 +426,9 @@ namespace MysteryButton
                 PlayerControllerB player = currentPlayers[rng.Next(currentPlayers.Length)];
                 player.insanityLevel = player.maxInsanityLevel;
                 player.JumpToFearLevel(1.25F);
-                player.movementAudio.PlayOneShot(playerMalusClips[rng.Next(0, playerMalusClips.Count)]);
+                player.movementAudio.PlayOneShot(
+                    playerMalusClips[rng.Next(0, playerMalusClips.Count)]
+                );
                 player.JumpToFearLevel(1.25f);
                 logger.LogInfo("Client: Apply max insanity to " + player.playerUsername);
             }
@@ -638,7 +632,7 @@ namespace MysteryButton
         }
 
         #endregion SpawnEnemy
-        
+
         #region BerserkTurretEnemy
 
         [ServerRpc(RequireOwnership = false)]
@@ -646,19 +640,22 @@ namespace MysteryButton
         {
             BerserkTurretClientRpc(playerName);
         }
-        
+
         [ClientRpc]
         void BerserkTurretClientRpc(string? playerName)
         {
             logger.LogInfo("ButtonAI::BerserkTurretClientRpc");
-            var playerIndex = StartOfRound.Instance.allPlayerScripts.IndexOf(p => p.name == playerName);
-            
+            var playerIndex = StartOfRound.Instance.allPlayerScripts.IndexOf(p =>
+                p.name == playerName
+            );
+
             List<Turret> turrets = FindObjectsOfType<Turret>().ToList();
             logger.LogInfo(turrets.Count + " turrets found");
 
             foreach (var turret in turrets)
             {
-                turret.EnterBerserkModeServerRpc(playerIndex);
+                // turret.EnterBerserkModeServerRpc(playerIndex);
+                // turret.EnterBerserkModeClientRpc(playerIndex);
             }
         }
 
