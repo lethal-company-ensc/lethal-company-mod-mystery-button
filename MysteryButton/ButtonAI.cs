@@ -133,7 +133,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                RandomPlayerIncreaseInsanityServerRpc();
+                BerserkTurretServerRpc(player?.name);
             }
             else
             {
@@ -173,7 +173,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                RandomPlayerIncreaseInsanityServerRpc();
+                BerserkTurretServerRpc(entity?.name);
             }
             else
             {
@@ -192,6 +192,10 @@ namespace MysteryButton
                 else if (effect < 60)
                 {
                     RandomPlayerIncreaseInsanityServerRpc();
+                }
+                else if (effect < 70)
+                {
+                    BerserkTurretServerRpc(entity?.name);
                 }
                 else if (effect < 80)
                 {
@@ -634,6 +638,31 @@ namespace MysteryButton
         }
 
         #endregion SpawnEnemy
+        
+        #region BerserkTurretEnemy
+
+        [ServerRpc(RequireOwnership = false)]
+        void BerserkTurretServerRpc(string? playerName)
+        {
+            BerserkTurretClientRpc(playerName);
+        }
+        
+        [ClientRpc]
+        void BerserkTurretClientRpc(string? playerName)
+        {
+            logger.LogInfo("ButtonAI::BerserkTurretClientRpc");
+            var playerIndex = StartOfRound.Instance.allPlayerScripts.IndexOf(p => p.name == playerName);
+            
+            List<Turret> turrets = FindObjectsOfType<Turret>().ToList();
+            logger.LogInfo(turrets.Count + " turrets found");
+
+            foreach (var turret in turrets)
+            {
+                turret.EnterBerserkModeServerRpc(playerIndex);
+            }
+        }
+
+        #endregion BerserkTurret
 
         #region TeleportPlayerToRandomPosition
 
