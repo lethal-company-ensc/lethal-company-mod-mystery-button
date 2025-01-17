@@ -80,7 +80,7 @@ namespace MysteryButton
             {
                 logger.LogInfo("ButtonAI::OnCollideWithEnemy, ButtonAI::id=" + id);
                 isLock = true;
-                DoMalusEffect(collidedEnemy);
+                DoMalusEffect(collidedEnemy.name);
             }
         }
 
@@ -98,58 +98,63 @@ namespace MysteryButton
                 {
                     logger.LogInfo(
                         "ButtonAI::OnCollideWithPlayer, player EXISTS for collider "
-                            + other.gameObject.name
+                        + other.gameObject.name
                     );
-
-                    int effect = rng.Next(0, 100);
-                    logger.LogInfo("effect=" + effect);
-
-                    bool isBonus = effect < 50;
-
-                    if (isBonus)
-                    {
-                        logger.LogInfo("Bonus effect");
-                        DoBonusEffect(player);
-                    }
-                    else
-                    {
-                        logger.LogInfo("Malus effect");
-                        DoMalusEffect(player);
-                    }
-
-                    KillButtonServerRpc(isBonus);
+                    
+                    DoEffect(player.name);
                 }
             }
         }
 
-        private void DoBonusEffect(PlayerControllerB player)
+        public void DoEffect(string playerName)
+        {
+            int effect = rng.Next(0, 100);
+            logger.LogInfo("effect=" + effect);
+
+            bool isBonus = effect < 50;
+
+            if (isBonus)
+            {
+                logger.LogInfo("Bonus effect");
+                DoBonusEffect(playerName);
+            }
+            else
+            {
+                logger.LogInfo("Malus effect");
+                DoMalusEffect(playerName);
+            }
+
+            KillButtonServerRpc(isBonus);
+        }
+
+        private void DoBonusEffect(string playerName)
         {
             int effect = rng.Next(0, 100);
             logger.LogInfo("Bonus effect=" + effect);
 
             if (IS_TEST)
             {
-                BerserkTurretServerRpc(player?.name);
+                BerserkTurretServerRpc(playerName);
             }
             else
             {
                 if (effect < 30)
                 {
-                    SpawnScrapServerRpc(player?.name);
+                    SpawnScrapServerRpc(playerName);
                 }
                 else if (effect < 60)
                 {
                     int amount = rng.Next(1, 6);
-                    SpawnScrapServerRpc(player?.name, amount);
+                    SpawnScrapServerRpc(playerName, amount);
                 }
                 else if (effect < 90)
                 {
-                    SpawnSpecificScrapServerRpc(player?.name, 1);
+                    SpawnSpecificScrapServerRpc(playerName, 1);
                 }
                 else if (effect < 91)
                 {
                     int amount = rng.Next(1, 11);
-                    SpawnSpecificScrapServerRpc(player?.name, amount);
+                    SpawnSpecificScrapServerRpc(playerName, amount);
                 }
                 else if (canExplodeLandmines)
                 {
@@ -157,19 +162,19 @@ namespace MysteryButton
                 }
                 else
                 {
-                    RevivePlayerServerRpc(player?.name);
+                    RevivePlayerServerRpc(playerName);
                 }
             }
         }
 
-        private void DoMalusEffect(NetworkBehaviour entity)
+        private void DoMalusEffect(string playerName)
         {
             int effect = rng.Next(0, 100);
             logger.LogInfo("Malus effect=" + effect);
 
             if (IS_TEST)
             {
-                BerserkTurretServerRpc(entity?.name);
+                BerserkTurretServerRpc(playerName);
             }
             else
             {
@@ -191,7 +196,7 @@ namespace MysteryButton
                 }
                 else if (effect < 70)
                 {
-                    BerserkTurretServerRpc(entity?.name);
+                    BerserkTurretServerRpc(playerName);
                 }
                 else if (effect < 80)
                 {
@@ -203,15 +208,14 @@ namespace MysteryButton
                 }
                 else
                 {
-                    string? entityName = entity?.name;
                     int open = rng.Next(0, 100);
                     if (open < 50)
                     {
-                        OpenAllDoorsServerRpc(entityName);
+                        OpenAllDoorsServerRpc(playerName);
                     }
                     else
                     {
-                        CloseAllDoorsServerRpc(entityName);
+                        CloseAllDoorsServerRpc(playerName);
                     }
                 }
             }

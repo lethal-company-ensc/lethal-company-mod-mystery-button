@@ -32,7 +32,7 @@ namespace MysteryButton
 				Logger.LogInfo($"Loaded {Bundles.Count} bundles : {string.Join(", ", Bundles)}");
 			}
 
-			AddEnemyFromBundle<ButtonAI>(Bundles.First(), "MysteryButton", "Mystery Button", 180, Levels.LevelTypes.All, Enemies.SpawnType.Default);
+			AddFromBundle<ButtonAI>(Bundles.First(), "MysteryButton", "Mystery Button", 180, Levels.LevelTypes.All, Enemies.SpawnType.Default);
 
 			Logger.LogInfo($"{MyPluginInfo.PLUGIN_GUID} v{MyPluginInfo.PLUGIN_VERSION} has loaded!");
 		}
@@ -87,7 +87,7 @@ namespace MysteryButton
 			}
 		}
 
-		protected void AddEnemyFromBundle<T>(AssetBundle bundle, string name, string nameInTerminal, int rarity, Levels.LevelTypes levelTypes, Enemies.SpawnType spawnType) where T : EnemyAI
+		protected void AddFromBundle<T>(AssetBundle bundle, string name, string nameInTerminal, int rarity, Levels.LevelTypes levelTypes, Enemies.SpawnType spawnType) where T : EnemyAI
 		{
 			EnemyType enemyType = bundle.LoadAsset<EnemyType>("MysteryButtonET");
 			if (enemyType == null || enemyType.enemyPrefab == null)
@@ -130,11 +130,23 @@ namespace MysteryButton
 
 			Logger.LogInfo($"Attached {typeof(T).Name} script to enemy {name} from {bundle.name}.");
 
+			// Item mysteryButtonItem = bundle.LoadAsset<Item>($"{name}Item");
+			// if (mysteryButtonItem == null)
+			// {
+			// 	Logger.LogError($"Could not load {name}Item from bundle {bundle.name}.");
+			// 	return;
+			// }
+			//
+			// Logger.LogInfo($"Loaded enemy {name} prefab from bundle {bundle.name}.");
+
 			enemyAI.enemyType = enemyType;
 			enemyAI.enemyType.enemyPrefab.GetComponentInChildren<EnemyAICollisionDetect>().mainScript = enemyAI;
 			
 			NetworkPrefabs.RegisterNetworkPrefab(enemyAI.enemyType.enemyPrefab);
+			// NetworkPrefabs.RegisterNetworkPrefab(mysteryButtonItem.spawnPrefab);
+			
 			Enemies.RegisterEnemy(enemyAI.enemyType, rarity, levelTypes, spawnType, terminalNode, terminalKeyword);
+			// Items.RegisterScrap(mysteryButtonItem, 30, Levels.LevelTypes.All);
 
 			Logger.LogInfo($"Loaded enemy {terminalNode.creatureName} with terminal name {terminalKeyword.word}.");
 		}
