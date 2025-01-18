@@ -72,18 +72,6 @@ namespace MysteryButton
             base.Start();
         }
 
-        public override void OnCollideWithEnemy(Collider other, EnemyAI collidedEnemy = null)
-        {
-            base.OnCollideWithEnemy(other, collidedEnemy);
-
-            if (!isLock)
-            {
-                logger.LogInfo("ButtonAI::OnCollideWithEnemy, ButtonAI::id=" + id);
-                isLock = true;
-                DoMalusEffect(collidedEnemy.name);
-            }
-        }
-
         public override void OnCollideWithPlayer(Collider other)
         {
             base.OnCollideWithPlayer(other);
@@ -180,11 +168,11 @@ namespace MysteryButton
             {
                 if (effect < 20)
                 {
-                    TeleportPlayerToRandomPositionServerRpc();
+                    TeleportPlayerToRandomPositionServerRpc(playerName);
                 }
                 else if (effect < 40)
                 {
-                    SwitchPlayersPositionServerRpc();
+                    SwitchPlayersPositionServerRpc(playerName);
                 }
                 else if (effect < 55)
                 {
@@ -671,18 +659,16 @@ namespace MysteryButton
         #region TeleportPlayerToRandomPosition
 
         [ServerRpc(RequireOwnership = false)]
-        void TeleportPlayerToRandomPositionServerRpc()
+        void TeleportPlayerToRandomPositionServerRpc(string? playerName)
         {
-            TeleportPlayerToRandomPositionClientRpc();
+            TeleportPlayerToRandomPositionClientRpc(playerName);
         }
 
         [ClientRpc]
-        void TeleportPlayerToRandomPositionClientRpc()
+        void TeleportPlayerToRandomPositionClientRpc(string? playerName)
         {
             logger.LogInfo("ButtonAI::TeleportPlayerToRandomPositionClientRpc");
-            List<PlayerControllerB> players = GetActivePlayers();
-            PlayerControllerB player = players[rng.Next(players.Count)];
-            // PlayerControllerB player = GetPlayerByNameOrFirstOne(null);
+            PlayerControllerB player = GetPlayerByNameOrFirstOne(playerName);
 
             int randomIndex = rng.Next(0, RoundManager.Instance.insideAINodes.Length);
             var teleportPos = RoundManager.Instance.insideAINodes[randomIndex].transform.position;
@@ -711,10 +697,10 @@ namespace MysteryButton
         #region TeleportPlayerToPosition
 
         [ClientRpc]
-        void TeleportPlayerToPositionClientRpc(string? name, Vector3 pos)
+        void TeleportPlayerToPositionClientRpc(string? playerName, Vector3 pos)
         {
             logger.LogInfo("ButtonAI::TeleportPlayerToPositionClientRpc");
-            PlayerControllerB player = GetPlayerByNameOrFirstOne(name);
+            PlayerControllerB player = GetPlayerByNameOrFirstOne(playerName);
 
             if ((bool)(UnityEngine.Object)FindObjectOfType<AudioReverbPresets>())
                 FindObjectOfType<AudioReverbPresets>()
@@ -739,13 +725,13 @@ namespace MysteryButton
         #region SwitchPlayerPosition
 
         [ServerRpc(RequireOwnership = false)]
-        void SwitchPlayersPositionServerRpc()
+        void SwitchPlayersPositionServerRpc(string? playerName)
         {
-            SwitchPlayersPositionClientRpc();
+            SwitchPlayersPositionClientRpc(playerName);
         }
 
         [ClientRpc]
-        void SwitchPlayersPositionClientRpc()
+        void SwitchPlayersPositionClientRpc(string? playerName)
         {
             logger.LogInfo("ButtonAI::SwitchPlayerPositionClientRpc");
 
@@ -758,7 +744,7 @@ namespace MysteryButton
                 return;
             }
 
-            PlayerControllerB player = players[rng.Next(players.Count)];
+            PlayerControllerB player = GetPlayerByNameOrFirstOne(playerName);
             PlayerControllerB player2;
 
             do
