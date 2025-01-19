@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Timers;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using Unity.Netcode;
@@ -33,6 +28,8 @@ namespace MysteryButton
 
         private int id;
 
+        private AudioClip buttonAppearClip;
+
         private AudioClip buttonUsedClip;
 
         private AudioClip buttonUsedMalusClip;
@@ -54,9 +51,10 @@ namespace MysteryButton
             creatureSFX = gameObject.GetComponent<AudioSource>();
 
             AudioClip[] audioClips = enemyType?.audioClips ?? [];
-            buttonUsedClip = audioClips[0];
-            buttonUsedMalusClip = audioClips[1];
-            playerMalusClips = [audioClips[2], audioClips[3]];
+            buttonAppearClip = audioClips[0];
+            buttonUsedClip = audioClips[1];
+            buttonUsedMalusClip = audioClips[2];
+            playerMalusClips = [audioClips[3], audioClips[4]];
 
             id = cpt++;
             enemyHP = 100;
@@ -65,7 +63,8 @@ namespace MysteryButton
 
             if (creatureSFX && enemyType?.overrideVentSFX)
             {
-                creatureSFX.PlayOneShot(enemyType?.overrideVentSFX);
+                // creatureSFX.PlayOneShot(enemyType?.overrideVentSFX);
+                creatureSFX.PlayOneShot(buttonAppearClip);
             }
 
             List<Landmine> landmines = FindObjectsOfType<Landmine>()
@@ -98,6 +97,7 @@ namespace MysteryButton
 
             if (!isLock)
             {
+                creatureSFX.Stop();
                 logger.LogInfo("ButtonAI::OnCollideWithPlayer, ButtonAI::id=" + id);
                 isLock = true;
                 PlayerControllerB player = other.gameObject.GetComponent<PlayerControllerB>();
