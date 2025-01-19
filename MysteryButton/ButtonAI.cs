@@ -254,6 +254,12 @@ namespace MysteryButton
                 }
             }
 
+            if (isBonus) 
+            {
+                Material buttonUsedMaterial = MysteryButton.buttonUsedMaterial;
+                transform.Find("MysteryButton/SpringBones/Bone.004/MysteryButton_Bouton").GetComponent<MeshRenderer>().material = buttonUsedMaterial;
+            }
+
             Animator animator = gameObject.GetComponentInChildren<Animator>();
             if (animator)
             {

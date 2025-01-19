@@ -15,6 +15,8 @@ namespace MysteryButton
 	{
 		public static Harmony? Harmony { get; protected set; }
 		public static List<AssetBundle> Bundles = [];
+
+		public static Material buttonUsedMaterial;
 		
 		protected void Awake()
 		{
@@ -129,6 +131,15 @@ namespace MysteryButton
 			}
 
 			Logger.LogInfo($"Attached {typeof(T).Name} script to enemy {name} from {bundle.name}.");
+			
+			buttonUsedMaterial = bundle.LoadAsset<Material>("ButtonUsedMaterial");
+			if (buttonUsedMaterial == null)
+			{
+				Logger.LogError($"Could not load material ButtonUsedMaterial from bundle {bundle.name}.");
+				return;
+			}
+			
+			Logger.LogInfo($"Loaded material ButtonUsedMaterial from bundle {bundle.name}.");
 
 			// Item mysteryButtonItem = bundle.LoadAsset<Item>($"{name}Item");
 			// if (mysteryButtonItem == null)
