@@ -20,7 +20,9 @@ namespace MysteryButton
             "Elirasza.MysteryButton.ButtonAI"
         );
 
-        private static readonly int PlayDeath = Animator.StringToHash("playDeath");
+        private static readonly int PlayUsed = Animator.StringToHash("playUsed");
+        
+        private static readonly int PlayDestroyed = Animator.StringToHash("playDestroyed");
 
         private Random rng;
 
@@ -54,7 +56,7 @@ namespace MysteryButton
             buttonAppearClip = audioClips[0];
             buttonUsedClip = audioClips[1];
             buttonUsedMalusClip = audioClips[2];
-            playerMalusClips = [audioClips[3], audioClips[4]];
+            playerMalusClips = [audioClips[4], audioClips[5]];
 
             id = cpt++;
             enemyHP = 100;
@@ -255,7 +257,14 @@ namespace MysteryButton
             Animator animator = gameObject.GetComponentInChildren<Animator>();
             if (animator)
             {
-                animator.SetBool(PlayDeath, true);
+                if (isBonus)
+                {
+                    animator.SetBool(PlayUsed, true);
+                }
+                else
+                {
+                    animator.SetBool(PlayDestroyed, true);
+                }
             }
             KillEnemy();
         }
