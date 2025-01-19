@@ -41,6 +41,8 @@ namespace MysteryButton
 
         private bool canExplodeLandmines;
 
+        private bool canMakeTurretsBerserk;
+
         private EnemyVent nearestVent;
 
         public override void Start()
@@ -70,6 +72,9 @@ namespace MysteryButton
                 .Where(mine => !mine.hasExploded)
                 .ToList();
             canExplodeLandmines = landmines.Count > 0;
+            
+            List<Turret> turrets = FindObjectsOfType<Turret>().ToList();
+            canMakeTurretsBerserk = turrets.Count > 0;
             
             List<EnemyVent> vents = RoundManager.Instance.allEnemyVents.ToList();
             nearestVent = vents[0];
@@ -137,7 +142,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                SpawnEnemyServerRpc(1);
+                BerserkTurretServerRpc();
             }
             else
             {
@@ -177,7 +182,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                SpawnEnemyServerRpc(1);
+                BerserkTurretServerRpc();
             }
             else
             {
@@ -197,9 +202,9 @@ namespace MysteryButton
                 {
                     RandomPlayerIncreaseInsanityServerRpc();
                 }
-                else if (effect < 70)
+                else if (effect < 70 && canMakeTurretsBerserk)
                 {
-                    BerserkTurretServerRpc(playerName);
+                    BerserkTurretServerRpc();
                 }
                 else if (effect < 80)
                 {
@@ -646,20 +651,18 @@ namespace MysteryButton
         #region BerserkTurretEnemy
 
         [ServerRpc(RequireOwnership = false)]
-        void BerserkTurretServerRpc(string? playerName)
+        void BerserkTurretServerRpc()
         {
-            BerserkTurretClientRpc(playerName);
+            BerserkTurretClientRpc();
         }
 
         [ClientRpc]
-        void BerserkTurretClientRpc(string? playerName)
+        void BerserkTurretClientRpc()
         {
             logger.LogInfo("ButtonAI::BerserkTurretClientRpc");
-            var playerIndex = StartOfRound.Instance.allPlayerScripts.IndexOf(p =>
-                p.name == playerName
-            );
-
+            
             List<Turret> turrets = FindObjectsOfType<Turret>().ToList();
+            
             logger.LogInfo(turrets.Count + " turrets found");
 
             foreach (var turret in turrets)
