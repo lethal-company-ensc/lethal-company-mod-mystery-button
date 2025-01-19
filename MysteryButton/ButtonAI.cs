@@ -41,6 +41,8 @@ namespace MysteryButton
 
         private bool canExplodeLandmines;
 
+        private EnemyVent nearestVent;
+
         public override void Start()
         {
             logger.LogInfo("ButtonAI::Start");
@@ -68,6 +70,19 @@ namespace MysteryButton
                 .Where(mine => !mine.hasExploded)
                 .ToList();
             canExplodeLandmines = landmines.Count > 0;
+            
+            List<EnemyVent> vents = RoundManager.Instance.allEnemyVents.ToList();
+            nearestVent = vents[0];
+
+            foreach (EnemyVent vent in vents)
+            {
+                float distBetweenNearestVentAndButton = Vector3.Distance(nearestVent.transform.position, transform.position);
+                float distBetweenVentAndButton = Vector3.Distance(vent.transform.position, transform.position);
+                if (distBetweenNearestVentAndButton > distBetweenVentAndButton)
+                {
+                    nearestVent = vent;
+                }
+            }
 
             base.Start();
         }
@@ -122,7 +137,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                BerserkTurretServerRpc(playerName);
+                SpawnEnemyServerRpc(1);
             }
             else
             {
@@ -162,7 +177,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                BerserkTurretServerRpc(playerName);
+                SpawnEnemyServerRpc(1);
             }
             else
             {
@@ -265,17 +280,17 @@ namespace MysteryButton
 
         #region RevivePlayer
         [ServerRpc(RequireOwnership = false)]
-        void RevivePlayerServerRpc(string? name)
+        void RevivePlayerServerRpc(string? playerName)
         {
             logger.LogInfo("ButtonAI:RevivePlayerServerRpc");
-            var player = GetPlayerByNameOrFirstOne(name);
+            var player = GetPlayerByNameOrFirstOne(playerName);
             var deadPlayers = StartOfRound
                 .Instance.allPlayerScripts.Where((p) => p.isPlayerDead)
                 .ToList();
             if (deadPlayers.Count > 0)
             {
                 var deadPlayer = deadPlayers[rng.Next(0, deadPlayers.Count)];
-                RevivePlayerClientRpc(name, deadPlayer.name);
+                RevivePlayerClientRpc(playerName, deadPlayer.name);
                 TeleportPlayerToPositionClientRpc(deadPlayer.name, player.transform.position);
             }
         }
@@ -417,7 +432,7 @@ namespace MysteryButton
             if (StartOfRound.Instance != null)
             {
                 PlayerControllerB[] currentPlayers = GetActivePlayers()
-                    .Where(player => player.playerSteamId != 0)
+                    .Where(player => (!player.isPlayerDead || player.isPlayerControlled) && player.playerSteamId != 0)
                     .ToArray();
                 PlayerControllerB player = currentPlayers[rng.Next(currentPlayers.Length)];
                 player.insanityLevel = player.maxInsanityLevel;
@@ -563,7 +578,7 @@ namespace MysteryButton
                 float angle = NextFloat(rng, 0, 2f * Mathf.PI);
                 Vector3 position =
                     player.transform.position
-                    + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * NextFloat(rng, 1f, 2f);
+                    + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * NextFloat(rng, 1f, 1.5f);
 
                 GameObject obj = Instantiate(randomItem.spawnPrefab, position, Quaternion.identity);
 
@@ -608,18 +623,17 @@ namespace MysteryButton
             logger.LogInfo("ButtonAI::SpawnEnemyServerRpc, amount=" + amount);
             List<SpawnableEnemyWithRarity> enemies = StartOfRound.Instance.currentLevel.Enemies;
             int allEnemiesListSize = enemies.Count;
-
+            
             for (int i = 0; i < amount; i++)
             {
                 int allEnemiesListIndex = rng.Next(0, allEnemiesListSize);
-                int randomIndex = rng.Next(0, RoundManager.Instance.allEnemyVents.Length);
                 SpawnableEnemyWithRarity randomEnemy = enemies[allEnemiesListIndex];
 
                 logger.LogInfo("Spawning enemy=" + randomEnemy.enemyType.name);
-
+                
                 GameObject obj = Instantiate(
                     randomEnemy.enemyType.enemyPrefab,
-                    RoundManager.Instance.allEnemyVents[randomIndex].transform.position,
+                    nearestVent.transform.position,
                     Quaternion.identity
                 );
 
