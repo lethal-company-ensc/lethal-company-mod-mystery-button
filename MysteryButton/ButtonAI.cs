@@ -5,6 +5,7 @@ using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem.Utilities;
+using UnityEngine.UIElements;
 using Logger = BepInEx.Logging.Logger;
 using Random = System.Random;
 
@@ -26,7 +27,9 @@ namespace MysteryButton
 
         private Random rng;
 
-        private bool isLock;
+        private NetworkVariable<bool> isLock = new NetworkVariable<bool>();
+
+        private bool isLocalLock;
 
         private int id;
 
@@ -47,6 +50,7 @@ namespace MysteryButton
         public override void Start()
         {
             logger.LogInfo("ButtonAI::Start");
+            isLocalLock = false;
 
             AudioSource audioSource = gameObject.GetComponent<AudioSource>();
             logger.LogInfo("AudioSource is " + (audioSource ? " not null" : "null"));
@@ -61,7 +65,6 @@ namespace MysteryButton
             id = cpt++;
             enemyHP = 100;
             rng = new Random((int)NetworkObjectId);
-            isLock = false;
 
             if (creatureSFX && enemyType?.overrideVentSFX)
             {
@@ -78,30 +81,85 @@ namespace MysteryButton
             canMakeTurretsBerserk = turrets.Count > 0;
             
             List<EnemyVent> vents = RoundManager.Instance.allEnemyVents.ToList();
-            nearestVent = vents[0];
 
-            foreach (EnemyVent vent in vents)
+            if (vents != null && vents.Count > 0)
             {
-                float distBetweenNearestVentAndButton = Vector3.Distance(nearestVent.transform.position, transform.position);
-                float distBetweenVentAndButton = Vector3.Distance(vent.transform.position, transform.position);
-                if (distBetweenNearestVentAndButton > distBetweenVentAndButton)
+                nearestVent = vents[0];
+
+                foreach (EnemyVent vent in vents)
                 {
-                    nearestVent = vent;
+                    float distBetweenNearestVentAndButton =
+                        Vector3.Distance(nearestVent.transform.position, transform.position);
+                    float distBetweenVentAndButton = Vector3.Distance(vent.transform.position, transform.position);
+                    if (distBetweenNearestVentAndButton > distBetweenVentAndButton)
+                    {
+                        nearestVent = vent;
+                    }
                 }
             }
 
             base.Start();
         }
 
+        public override void OnNetworkSpawn()
+        {
+            base.OnNetworkSpawn();
+
+            logger.LogInfo("ButtonAI::OnNetworkSpawn, IsServer=" + IsServer);
+            if (IsServer)
+            {
+                isLock.Value = false;
+                NetworkManager.OnClientConnectedCallback += NetworkManager_OnClientConnectedCallback;
+            }
+            else
+            {
+                isLock.OnValueChanged += OnSomeValueChanged;
+            }
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            base.OnNetworkDespawn();
+            if (!IsServer)
+            {
+                isLock.OnValueChanged -= OnSomeValueChanged;
+            }
+        }
+
+        private void NetworkManager_OnClientConnectedCallback(ulong obj)
+        {
+            InitNetworkVariables();
+        }
+        
+        private void OnSomeValueChanged(bool previous, bool current)
+        {
+            logger.LogInfo($"Detected NetworkVariable Change: Previous: {previous} | Current: {current}");
+            isLock.Value = current;
+        }
+
+        private void InitNetworkVariables()
+        {
+            isLock.Value = false;
+            NetworkManager.OnClientConnectedCallback -= NetworkManager_OnClientConnectedCallback;
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void SetLockServerRpc()
+        {
+            logger.LogInfo("ButtonAI::SetLock");
+            isLock.Value = true;
+        }
+
         public override void OnCollideWithPlayer(Collider other)
         {
             base.OnCollideWithPlayer(other);
 
-            if (!isLock)
+            if (!isLocalLock && !isLock.Value)
             {
+                isLocalLock = true;
                 creatureSFX.Stop();
                 logger.LogInfo("ButtonAI::OnCollideWithPlayer, ButtonAI::id=" + id);
-                isLock = true;
+                SetLockServerRpc();
                 PlayerControllerB player = other.gameObject.GetComponent<PlayerControllerB>();
 
                 if (player != null)
@@ -208,11 +266,11 @@ namespace MysteryButton
                 {
                     BerserkTurretServerRpc();
                 }
-                else if (effect < 80)
+                else if (effect < 80 && nearestVent != null)
                 {
                     SpawnEnemyServerRpc(1);
                 }
-                else if (effect < 81)
+                else if (effect < 81 && nearestVent != null)
                 {
                     SpawnEnemyServerRpc(rng.Next(1, 5));
                 }
