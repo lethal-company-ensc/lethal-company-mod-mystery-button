@@ -219,7 +219,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                BerserkTurretServerRpc();
+                StartMeteorEventServerRpc();
             }
             else
             {
@@ -259,11 +259,15 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                BerserkTurretServerRpc();
+                StartMeteorEventServerRpc();
             }
             else
             {
-                if (effect < 20)
+                if (effect < 5)
+                {
+                    StartMeteorEventServerRpc();
+                }
+                else if (effect < 20)
                 {
                     TeleportPlayerToRandomPositionServerRpc(playerName);
                 }
@@ -908,6 +912,16 @@ namespace MysteryButton
         }
 
         #endregion SwitchPlayerPosition
+        
+        #region MeteorShower
+        [ServerRpc(RequireOwnership = false)]
+        public void StartMeteorEventServerRpc()
+        {
+            TimeOfDay instance = TimeOfDay.Instance;
+            instance.meteorShowerAtTime = -1f;
+            instance.MeteorWeather.SetStartMeteorShower();
+        }
+        #endregion MeteorShower
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer)
             where T : IReaderWriter
