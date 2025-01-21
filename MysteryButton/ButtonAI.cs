@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
 using GameNetcodeStuff;
@@ -219,7 +220,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                StartMeteorEventServerRpc();
+                LeaveEarlyServerRpc();
             }
             else
             {
@@ -259,7 +260,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                StartMeteorEventServerRpc();
+                LeaveEarlyServerRpc();
             }
             else
             {
@@ -278,6 +279,10 @@ namespace MysteryButton
                 else if (effect < 55)
                 {
                     PlayerDrunkServerRpc();
+                }
+                else if (effect < 56)
+                {
+                    LeaveEarlyServerRpc();
                 }
                 else if (effect < 60)
                 {
@@ -917,11 +922,25 @@ namespace MysteryButton
         [ServerRpc(RequireOwnership = false)]
         public void StartMeteorEventServerRpc()
         {
+            logger.LogInfo("ButtonAI::StartMeteorEventServerRpc");
+            
             TimeOfDay instance = TimeOfDay.Instance;
             instance.meteorShowerAtTime = -1f;
             instance.MeteorWeather.SetStartMeteorShower();
         }
         #endregion MeteorShower
+        
+        #region LeaveEarly
+        [ServerRpc(RequireOwnership = false)]
+        public void LeaveEarlyServerRpc()
+        {
+            logger.LogInfo("ButtonAI::LeaveEarlyServerRpc");
+            
+            TimeOfDay instance = TimeOfDay.Instance;
+            instance.votedShipToLeaveEarlyThisRound = true;
+            instance.SetShipLeaveEarlyServerRpc();
+        }
+        #endregion LeaveEarly
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer)
             where T : IReaderWriter
