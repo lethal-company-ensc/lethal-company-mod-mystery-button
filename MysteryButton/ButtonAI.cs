@@ -24,6 +24,8 @@ namespace MysteryButton
         private static readonly int PlayUsed = Animator.StringToHash("playUsed");
         
         private static readonly int PlayDestroyed = Animator.StringToHash("playDestroyed");
+        
+        private static readonly int PlayIdleBouncing = Animator.StringToHash("playIdleBouncing");
 
         private Random rng;
 
@@ -47,10 +49,17 @@ namespace MysteryButton
 
         private EnemyVent nearestVent;
 
+        private Animator animator;
+
         public override void Start()
         {
             logger.LogInfo("ButtonAI::Start");
             isLocalLock = false;
+
+            animator = gameObject.GetComponentInChildren<Animator>();
+            
+            float waitTime = 10f;
+            InvokeRepeating ("PlayIdleAnimation", 10f, waitTime);
 
             AudioSource audioSource = gameObject.GetComponent<AudioSource>();
             logger.LogInfo("AudioSource is " + (audioSource ? " not null" : "null"));
@@ -60,7 +69,7 @@ namespace MysteryButton
             buttonAppearClip = audioClips[0];
             buttonUsedClip = audioClips[1];
             buttonUsedMalusClip = audioClips[2];
-            playerMalusClips = [audioClips[4], audioClips[5]];
+            playerMalusClips = [audioClips[3], audioClips[4]];
 
             id = cpt++;
             enemyHP = 100;
@@ -99,6 +108,14 @@ namespace MysteryButton
             }
 
             base.Start();
+        }
+
+        private void PlayIdleAnimation()
+        {
+            if (animator && !isLocalLock && !isLock.Value)
+            {
+                animator.SetTrigger(PlayIdleBouncing);
+            }
         }
 
         public override void OnNetworkSpawn()
@@ -318,7 +335,6 @@ namespace MysteryButton
                 transform.Find("MysteryButton/SpringBones/Bone.004/MysteryButton_Bouton").GetComponent<MeshRenderer>().material = buttonUsedMaterial;
             }
 
-            Animator animator = gameObject.GetComponentInChildren<Animator>();
             if (animator)
             {
                 if (isBonus)
