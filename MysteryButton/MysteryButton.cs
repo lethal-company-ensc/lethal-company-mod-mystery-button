@@ -23,6 +23,14 @@ namespace MysteryButton
 			Patch();
 			PatchNetcode();
 
+			string buttonAscii = "\n";
+			buttonAscii += "*         *     *\n";
+			buttonAscii += "    *  _______ \n";
+			buttonAscii += " * ___|_______|___  *\n";
+			buttonAscii += "  |_______________|";
+
+			Logger.LogInfo(buttonAscii);
+
 			AddBundle("mysterybutton");
 
 			if (Bundles.Count == 0)
