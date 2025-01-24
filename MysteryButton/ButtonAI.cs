@@ -175,7 +175,6 @@ namespace MysteryButton
             if (!isLocalLock && !isLock.Value)
             {
                 isLocalLock = true;
-                creatureSFX.Stop();
                 logger.LogInfo("ButtonAI::OnCollideWithPlayer, ButtonAI::id=" + id);
                 SetLockServerRpc();
                 PlayerControllerB player = other.gameObject.GetComponent<PlayerControllerB>();
@@ -328,6 +327,7 @@ namespace MysteryButton
             logger.LogInfo("ButtonAI::KillButtonClientRpc");
             if (creatureSFX)
             {
+                creatureSFX.Stop();
                 if (isBonus)
                 {
                     creatureSFX.PlayOneShot(buttonUsedClip);
