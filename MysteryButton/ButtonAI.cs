@@ -42,6 +42,8 @@ namespace MysteryButton
 
         private AudioClip buttonUsedMalusClip;
 
+        private AudioClip teleporterBeamClip;
+
         private List<AudioClip> playerMalusClips;
 
         private bool canExplodeLandmines;
@@ -71,6 +73,7 @@ namespace MysteryButton
             buttonUsedClip = audioClips[1];
             buttonUsedMalusClip = audioClips[2];
             playerMalusClips = [audioClips[3], audioClips[4]];
+            teleporterBeamClip = audioClips[5];
 
             id = cpt++;
             enemyHP = 100;
@@ -799,12 +802,7 @@ namespace MysteryButton
             player.velocityLastFrame = Vector3.zero;
             player.TeleportPlayer(teleportPos);
             player.beamOutParticle.Play();
-
-            ShipTeleporter shipTeleporter = FindObjectOfType<ShipTeleporter>();
-            if (shipTeleporter)
-            {
-                player.movementAudio.PlayOneShot(shipTeleporter.teleporterBeamUpSFX);
-            }
+            player.movementAudio.PlayOneShot(teleporterBeamClip);
         }
 
         #endregion TeleportPlayerToRandomPosition
