@@ -79,7 +79,7 @@ namespace MysteryButton
             enemyHP = 100;
             rng = new Random((int)NetworkObjectId);
 
-            if (creatureSFX && enemyType?.overrideVentSFX)
+            if (creatureSFX )
             {
                 // creatureSFX.PlayOneShot(enemyType?.overrideVentSFX);
                 creatureSFX.PlayOneShot(buttonAppearClip);
