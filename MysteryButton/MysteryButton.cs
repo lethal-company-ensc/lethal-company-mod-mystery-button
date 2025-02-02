@@ -1,3 +1,4 @@
+using System;
 using BepInEx;
 using HarmonyLib;
 using LethalLib.Modules;
@@ -14,7 +15,10 @@ namespace MysteryButton
 	public class MysteryButton : BaseUnityPlugin
 	{
 		public static Harmony? Harmony { get; protected set; }
+		
 		public static List<AssetBundle> Bundles = [];
+		
+		public static MysteryButtonConfig ModConfig { get; private set; }
 
 		public static Material buttonUsedMaterial;
 		
@@ -41,8 +45,10 @@ namespace MysteryButton
 			{
 				Logger.LogInfo($"Loaded {Bundles.Count} bundles : {string.Join(", ", Bundles)}");
 			}
-
-			AddFromBundle<ButtonAI>(Bundles.First(), "MysteryButton", "Mystery Button", 180, Levels.LevelTypes.All, Enemies.SpawnType.Default);
+			
+			ModConfig = new MysteryButtonConfig(this.Config);
+			
+			AddFromBundle<MysteryButtonAI>(Bundles.First(), "MysteryButton", Enemies.SpawnType.Default);
 
 			Logger.LogInfo($"{MyPluginInfo.PLUGIN_GUID} v{MyPluginInfo.PLUGIN_VERSION} has loaded!");
 		}
@@ -80,7 +86,7 @@ namespace MysteryButton
 			Logger.LogDebug("Finished unpatching!");
 		}
 
-		protected void AddBundle(string name)
+		private void AddBundle(string name)
 		{
 			string assemblyPath = Assembly.GetExecutingAssembly().Location;
 			string assemblyDirectory = Path.GetDirectoryName(assemblyPath);
@@ -97,7 +103,7 @@ namespace MysteryButton
 			}
 		}
 
-		protected void AddFromBundle<T>(AssetBundle bundle, string name, string nameInTerminal, int rarity, Levels.LevelTypes levelTypes, Enemies.SpawnType spawnType) where T : EnemyAI
+		private void AddFromBundle<T>(AssetBundle bundle, string name, Enemies.SpawnType spawnType) where T : EnemyAI
 		{
 			EnemyType enemyType = bundle.LoadAsset<EnemyType>("MysteryButtonET");
 			if (enemyType == null || enemyType.enemyPrefab == null)
@@ -160,14 +166,55 @@ namespace MysteryButton
 
 			enemyAI.enemyType = enemyType;
 			enemyAI.enemyType.enemyPrefab.GetComponentInChildren<EnemyAICollisionDetect>().mainScript = enemyAI;
+
+			var maxAmount = MysteryButtonConfig.ConfigMaxAmount.Value;
+			Logger.LogInfo($"Maximum number of buttons per round set to {maxAmount}");
+			enemyAI.enemyType.MaxCount = maxAmount;
 			
 			NetworkPrefabs.RegisterNetworkPrefab(enemyAI.enemyType.enemyPrefab);
 			// NetworkPrefabs.RegisterNetworkPrefab(mysteryButtonItem.spawnPrefab);
 			
-			Enemies.RegisterEnemy(enemyAI.enemyType, rarity, levelTypes, spawnType, terminalNode, terminalKeyword);
-			// Items.RegisterScrap(mysteryButtonItem, 30, Levels.LevelTypes.All);
+			(Dictionary<Levels.LevelTypes, int> spawnRateByLevelType, Dictionary<string, int> spawnRateByCustomLevelType) = ConfigParsing(MysteryButtonConfig.ConfigRarity.Value);
 
-			Logger.LogInfo($"Loaded enemy {terminalNode.creatureName} with terminal name {terminalKeyword.word}.");
+			if (!MysteryButtonConfig.ConfigSpawnDisabled.Value)
+			{
+				Logger.LogInfo("Spawn enabled for MysteryButton");
+				Enemies.RegisterEnemy(enemyAI.enemyType, spawnRateByLevelType, spawnRateByCustomLevelType, terminalNode, terminalKeyword);
+				Logger.LogInfo($"Loaded enemy {terminalNode.creatureName} with terminal name {terminalKeyword.word}.");
+			}
+			else
+			{
+				Logger.LogInfo("Spawn disabled for MysteryButton");
+			}
+			// Items.RegisterScrap(mysteryButtonItem, 30, Levels.LevelTypes.All);
+		}
+		
+		private (Dictionary<Levels.LevelTypes, int> spawnRateByLevelType, Dictionary<string, int> spawnRateByCustomLevelType) ConfigParsing(string configMoonRarity) {
+			Dictionary<Levels.LevelTypes, int> spawnRateByLevelType = new Dictionary<Levels.LevelTypes, int>();
+			Dictionary<string, int> spawnRateByCustomLevelType = new Dictionary<string, int>();
+		
+			foreach (string entry in configMoonRarity.Split(',').Select(s => s.Trim())) {
+				string[] entryParts = entry.Split(':');
+
+				if (entryParts.Length != 2) {
+					continue;
+				}
+				string name = entryParts[0];
+				int spawnrate;
+
+				if (!int.TryParse(entryParts[1], out spawnrate)) {
+					continue;
+				}
+
+				if (Enum.TryParse<Levels.LevelTypes>(name, true, out Levels.LevelTypes levelType)) {
+					spawnRateByLevelType[levelType] = spawnrate;
+					Logger.LogInfo($"Registered spawn rate for level type {levelType} to {spawnrate}");
+				} else {
+					spawnRateByCustomLevelType[name] = spawnrate;
+					Logger.LogInfo($"Registered spawn rate for custom level type {name} to {spawnrate}");
+				}
+			}
+			return (spawnRateByLevelType, spawnRateByCustomLevelType);
 		}
 	}
 }

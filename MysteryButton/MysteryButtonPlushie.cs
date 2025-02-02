@@ -1,15 +1,15 @@
 ﻿namespace MysteryButton;
 
-public class ButtonPlushie : GrabbableObject
+public class MysteryButtonPlushie : GrabbableObject
 {
-    private ButtonAI ai;
+    private MysteryButtonAI ai;
 
     private bool hasBeenUsed;
     
     public override void Start()
     {
         hasBeenUsed = false;
-        ai = gameObject.AddComponent<ButtonAI>();
+        ai = gameObject.AddComponent<MysteryButtonAI>();
         base.Start();
     }
     

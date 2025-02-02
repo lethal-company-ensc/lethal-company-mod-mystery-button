@@ -1,25 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem.Utilities;
-using UnityEngine.UIElements;
 using Logger = BepInEx.Logging.Logger;
 using Random = System.Random;
 
 namespace MysteryButton
 {
-    public class ButtonAI : EnemyAI, INetworkSerializable
+    public class MysteryButtonAI : EnemyAI, INetworkSerializable
     {
         private static int cpt = 0;
 
         private static bool IS_TEST = false;
 
-        internal static ManualLogSource logger = Logger.CreateLogSource(
-            "Elirasza.MysteryButton.ButtonAI"
+        private static ManualLogSource logger = Logger.CreateLogSource(
+            "MysteryButton.MysteryButtonAI"
         );
 
         private static readonly int PlayUsed = Animator.StringToHash("playUsed");
@@ -30,7 +28,7 @@ namespace MysteryButton
 
         private Random rng;
 
-        private NetworkVariable<bool> isLock = new NetworkVariable<bool>();
+        private NetworkVariable<bool> isLock = new ();
 
         private bool isLocalLock;
 
@@ -79,7 +77,7 @@ namespace MysteryButton
             enemyHP = 100;
             rng = new Random((int)NetworkObjectId);
 
-            if (creatureSFX )
+            if (creatureSFX)
             {
                 // creatureSFX.PlayOneShot(enemyType?.overrideVentSFX);
                 creatureSFX.PlayOneShot(buttonAppearClip);
@@ -95,7 +93,7 @@ namespace MysteryButton
             
             List<EnemyVent> vents = RoundManager.Instance.allEnemyVents.ToList();
 
-            if (vents != null && vents.Count > 0)
+            if (vents.Count > 0)
             {
                 nearestVent = vents[0];
 
