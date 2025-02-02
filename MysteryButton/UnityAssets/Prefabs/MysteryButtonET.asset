@@ -1,0 +1,95 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65d3fcb39dd67306e9bb17a603308070, type: 3}
+  m_Name: MysteryButtonET
+  m_EditorClassIdentifier: 
+  enemyName: MysteryButton
+  probabilityCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spawningDisabled: 0
+  numberSpawnedFalloff:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: -0.5075717
+      outSlope: -0.5075717
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1.0083191
+      value: 0.48820573
+      inSlope: -0.5075717
+      outSlope: -0.5075717
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  useNumberSpawnedFalloff: 1
+  enemyPrefab: {fileID: 3871667029262795091, guid: fd6cde4163b65fb4581bfc2c7cc95f52,
+    type: 3}
+  PowerLevel: 1
+  MaxCount: 5
+  numberSpawned: 0
+  isOutsideEnemy: 0
+  isDaytimeEnemy: 0
+  normalizedTimeInDayToLeave: 0
+  stunTimeMultiplier: 0
+  doorSpeedMultiplier: 0
+  stunGameDifficultyMultiplier: 0
+  canBeStunned: 0
+  canDie: 1
+  destroyOnDeath: 0
+  canSeeThroughFog: 0
+  timeToPlayAudio: 0
+  loudnessMultiplier: 1
+  overrideVentSFX: {fileID: 0}
+  hitBodySFX: {fileID: 0}
+  hitEnemyVoiceSFX: {fileID: 0}
+  deathSFX: {fileID: 0}
+  stunSFX: {fileID: 0}
+  miscAnimations: []
+  audioClips:
+  - {fileID: 8300000, guid: 32875077376fc2f429a303c2ecac12d4, type: 3}
+  - {fileID: 8300000, guid: d034c78ee705ee449a31d6b09c584f96, type: 3}
+  - {fileID: 8300000, guid: 930affad916354e4db02cf250865c3f5, type: 3}
+  - {fileID: 8300000, guid: 0067a36a95b75624394ddad79649e5fc, type: 3}
+  - {fileID: 8300000, guid: 412edbdeb6f577e459f6fe9b60696646, type: 3}
+  - {fileID: 8300000, guid: 26bf5849b2dd6224290ec1d20c1af1cd, type: 3}

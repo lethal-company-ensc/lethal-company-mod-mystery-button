@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3cecf05b78b173605122a700874719c, type: 3}
+  m_Name: MysteryButtonTK
+  m_EditorClassIdentifier: 
+  word: mystery button
+  isVerb: 1
+  compatibleNouns:
+  - noun: {fileID: 11400000, guid: 004bee7d19299114194324fe3e7e400e, type: 2}
+    result: {fileID: 11400000, guid: b03376be6702c31459a87e258d46f689, type: 2}
+  specialKeywordResult: {fileID: 11400000, guid: b03376be6702c31459a87e258d46f689,
+    type: 2}
+  defaultVerb: {fileID: 0}
+  accessTerminalObjects: 0
