@@ -552,16 +552,16 @@ namespace MysteryButton
 
         #region OpenAllDoors
         [ServerRpc(RequireOwnership = false)]
-        void OpenAllDoorsServerRpc(string? name)
+        void OpenAllDoorsServerRpc(string? entityName)
         {
-            OpenAllDoorsClientRpc(name);
+            OpenAllDoorsClientRpc(entityName);
         }
 
         [ClientRpc]
-        void OpenAllDoorsClientRpc(string? name)
+        void OpenAllDoorsClientRpc(string? entityName)
         {
             logger.LogInfo("ButtonAI::OpenAllDoorsClientRpc");
-            var player = GetPlayerByNameOrFirstOne(name);
+            var player = GetPlayerByNameOrFirstOne(entityName);
 
             List<DoorLock> doors = FindObjectsOfType<DoorLock>().ToList();
             foreach (DoorLock door in doors)
@@ -586,16 +586,16 @@ namespace MysteryButton
 
         #region CloseAllDoors
         [ServerRpc(RequireOwnership = false)]
-        void CloseAllDoorsServerRpc(string? name)
+        void CloseAllDoorsServerRpc(string? entityName)
         {
-            CloseAllDoorsClientRpc(name);
+            CloseAllDoorsClientRpc(entityName);
         }
 
         [ClientRpc]
-        void CloseAllDoorsClientRpc(string? name)
+        void CloseAllDoorsClientRpc(string? entityName)
         {
             logger.LogInfo("ButtonAI::CloseAllDoorsClientRpc");
-            var player = GetPlayerByNameOrFirstOne(name);
+            var player = GetPlayerByNameOrFirstOne(entityName);
 
             List<DoorLock> doors = FindObjectsOfType<DoorLock>().ToList();
             logger.LogInfo("CloseAllDoors: " + doors.Count);
@@ -672,7 +672,7 @@ namespace MysteryButton
                 .ToList();
             int allItemListSize = allScrapList.Count;
 
-            var player = GetPlayerByNameOrFirstOne(name);
+            var player = GetPlayerByNameOrFirstOne(entityName);
 
             for (int i = 0; i < amount; i++)
             {
@@ -944,10 +944,10 @@ namespace MysteryButton
             serializer.SerializeValue(ref id);
         }
 
-        private static PlayerControllerB GetPlayerByNameOrFirstOne(string? name)
+        private static PlayerControllerB GetPlayerByNameOrFirstOne(string? entityName)
         {
             List<PlayerControllerB> activePlayers = GetActivePlayers();
-            return activePlayers.FirstOrDefault(x => x.name == name)
+            return activePlayers.FirstOrDefault(x => x.name == entityName)
                 ?? StartOfRound.Instance.allPlayerScripts[0];
         }
 
