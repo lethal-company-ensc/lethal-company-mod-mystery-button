@@ -1,10 +1,10 @@
 ﻿{
-  "name": "LC_Mystery_Button",
+  "name": "Mystery_Button",
   "description": "No one knows what this button does. It could make you rich or bring disastrous and chaotic consequences.",
-  "version_number": "1.0.0",
+  "version_number": "1.0.1",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2100",
     "Evaisa-LethalLib-0.16.2"
   ],
-  "website_url": "https://github.com/elirasza/lethal-company-mod-template/tree/mystery-button"
+  "website_url": "https://github.com/lethal-company-ensc/lethal-company-mod-mystery-button"
 }
