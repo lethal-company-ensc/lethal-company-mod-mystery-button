@@ -48,6 +48,8 @@ namespace MysteryButton
 
         private bool canMakeTurretsBerserk;
 
+        private bool canOpenSteamValveHazard;
+
         private EnemyVent nearestVent;
 
         private Animator animator;
@@ -87,6 +89,9 @@ namespace MysteryButton
                 .Where(mine => !mine.hasExploded)
                 .ToList();
             canExplodeLandmines = landmines.Count > 0;
+            
+            List<SteamValveHazard> steamValves = FindObjectsOfType<SteamValveHazard>().ToList();
+            canOpenSteamValveHazard = steamValves.Count > 0;
             
             List<Turret> turrets = FindObjectsOfType<Turret>().ToList();
             canMakeTurretsBerserk = turrets.Count > 0;
@@ -220,7 +225,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                LeaveEarlyServerRpc();
+                OpenAllSteamValveHazardServerRpc();
             }
             else
             {
@@ -260,7 +265,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                LeaveEarlyServerRpc();
+                OpenAllSteamValveHazardServerRpc();
             }
             else
             {
@@ -275,6 +280,10 @@ namespace MysteryButton
                 else if (effect < 40)
                 {
                     SwitchPlayersPositionServerRpc(playerName);
+                }
+                else if (effect < 50 && canOpenSteamValveHazard)
+                {
+                    OpenAllSteamValveHazardServerRpc();
                 }
                 else if (effect < 55)
                 {
@@ -925,6 +934,34 @@ namespace MysteryButton
             instance.MeteorWeather.SetStartMeteorShower();
         }
         #endregion MeteorShower
+        
+        #region OpenAllSteamValveHazard
+        
+        [ServerRpc(RequireOwnership = false)]
+        public void OpenAllSteamValveHazardServerRpc()
+        {
+            OpenAllSteamValveHazardClientRpc();
+        }
+
+        [ClientRpc]
+        public void OpenAllSteamValveHazardClientRpc()
+        {
+            logger.LogInfo("ButtonAI::OpenAllSteamValveHazardClientRpc");
+
+            List<SteamValveHazard> steamValves = FindObjectsOfType<SteamValveHazard>().ToList();
+            logger.LogInfo(steamValves.Count + " steamValve found");
+            foreach (var steamValve in steamValves)
+            {
+                logger.LogInfo("Opening steamValve id=" + steamValve.NetworkObjectId);
+                steamValve.BurstValve();
+                steamValve.CrackValve();
+                steamValve.valveHasBurst = true;
+                steamValve.valveHasCracked = true;
+                steamValve.valveHasBeenRepaired = false;
+                steamValve.currentFogSize = 10f;
+            }
+        }
+        #endregion OpenAllSteamValveHazard
         
         #region LeaveEarly
         [ServerRpc(RequireOwnership = false)]

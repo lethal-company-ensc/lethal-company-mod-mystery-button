@@ -1,3 +1,7 @@
+# v 1.1.0
+
+- Add 1 effect to the button
+
 # v 1.0.0
 
 - Add a mysterious button to the spawnable enemy list

@@ -60,9 +60,9 @@ After several weeks of beta testing, we decided to share this mod with the commu
                 <th>7,5%</th>
             </tr>
             <tr>
-                <th>PlayerDrunk</th>
-                <th>Apply a drunken state to everyone</th>
-                <th>7,5%</th>
+                <th>OpenAllSteamValveHazard (new)</th>
+                <th>Break all steam valves</th>
+                <th>5%</th>
             </tr>
             <tr>
                 <th>BerserkTurret</th>
@@ -93,6 +93,11 @@ After several weeks of beta testing, we decided to share this mod with the commu
                 <th>RevivePlayer</th>
                 <th>Resurrects a random dead player at the button position</th>
                 <th>4,5% (if no landmine)</th>
+            </tr>
+            <tr>
+                <th>PlayerDrunk</th>
+                <th>Apply a drunken state to everyone</th>
+                <th>2,5%</th>
             </tr>
             <tr>
                 <th>StartMeteorEvent</th>
