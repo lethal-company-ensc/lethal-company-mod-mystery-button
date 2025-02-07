@@ -60,7 +60,7 @@ After several weeks of beta testing, we decided to share this mod with the commu
                 <th>7,5%</th>
             </tr>
             <tr>
-                <th>OpenAllSteamValveHazard (new)</th>
+                <th style="display: flex; align-items: center; justify-content: center;"><span style="margin-right: 5px;">OpenAllSteamValveHazard</span> <img alt="Static Badge" src="https://img.shields.io/badge/new-blue?style=flat"></th>
                 <th>Break all steam valves</th>
                 <th>5%</th>
             </tr>
@@ -75,24 +75,24 @@ After several weeks of beta testing, we decided to share this mod with the commu
                 <th>5%</th>
             </tr>
             <tr>
-                <th>OpenAllDoors</th>
-                <th>Opens all doors, with a 20% chance of opening a locked door</th>
-                <th>4,75%</th>
-            </tr>
-            <tr>
-                <th>CloseAllDoors</th>
-                <th>Closes all doors, with a 20% chance of locking a door</th>
-                <th>4,75%</th>
+                <th style="display: flex; align-items: center; justify-content: center;"><span style="margin-right: 5px;">TurnOffLights</span> <img alt="Static Badge" src="https://img.shields.io/badge/new-blue?style=flat">
+                <th>Switches power off</th>
+                <th>4,5%</th>
             </tr>
             <tr>
                 <th>ExplodeLandmines</th>
                 <th>Blows up all the mines in the factory</th>
-                <th>4,5%</th>
+                <th>4%</th>
             </tr>
             <tr>
-                <th>RevivePlayer</th>
-                <th>Resurrects a random dead player at the button position</th>
-                <th>4,5% (if no landmine)</th>
+                <th>OpenAllDoors</th>
+                <th>Opens all doors, with a 20% chance of opening a locked door</th>
+                <th>2,5%</th>
+            </tr>
+            <tr>
+                <th>CloseAllDoors</th>
+                <th>Closes all doors, with a 20% chance of locking a door</th>
+                <th>2,5%</th>
             </tr>
             <tr>
                 <th>PlayerDrunk</th>
@@ -123,6 +123,11 @@ After several weeks of beta testing, we decided to share this mod with the commu
                 <th>SpawnEnemy (1 - 4)</th>
                 <th>Makes between 1 and 4 enemies appear from the nearest vent</th>
                 <th>0,5%</th>
+            </tr>
+            <tr>
+                <th>RevivePlayer</th>
+                <th>Resurrects a random dead player at the button position</th>
+                <th>0.5% (or if no landmine)</th>
             </tr>
         </tbody>
     </table>

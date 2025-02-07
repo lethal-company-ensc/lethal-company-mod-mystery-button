@@ -1,6 +1,6 @@
 # v 1.1.0
 
-- Add 1 effect to the button
+- Add 2 effects to the button
 
 # v 1.0.0
 

@@ -50,6 +50,8 @@ namespace MysteryButton
 
         private bool canOpenSteamValveHazard;
 
+        private bool canTurnOffLights;
+
         private EnemyVent nearestVent;
 
         private Animator animator;
@@ -180,6 +182,9 @@ namespace MysteryButton
 
             if (!isLocalLock && !isLock.Value)
             {
+                BreakerBox breakerBox = FindObjectOfType<BreakerBox>();
+                canTurnOffLights = breakerBox && breakerBox.isPowerOn;
+                
                 isLocalLock = true;
                 logger.LogInfo("ButtonAI::OnCollideWithPlayer, ButtonAI::id=" + id);
                 SetLockServerRpc();
@@ -225,7 +230,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                OpenAllSteamValveHazardServerRpc();
+                RandomPlayerIncreaseInsanityServerRpc();
             }
             else
             {
@@ -247,7 +252,7 @@ namespace MysteryButton
                     int amount = rng.Next(1, 11);
                     SpawnSpecificScrapServerRpc(playerName, amount);
                 }
-                else if (canExplodeLandmines)
+                else if (effect < 99 && canExplodeLandmines)
                 {
                     ExplodeLandminesServerRpc();
                 }
@@ -265,7 +270,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                OpenAllSteamValveHazardServerRpc();
+                RandomPlayerIncreaseInsanityServerRpc();
             }
             else
             {
@@ -308,6 +313,10 @@ namespace MysteryButton
                 else if (effect < 81 && nearestVent != null)
                 {
                     SpawnEnemyServerRpc(rng.Next(1, 5));
+                }
+                else if (effect < 90 && canTurnOffLights)
+                {
+                    TurnOffLightsServerRpc();
                 }
                 else
                 {
@@ -554,6 +563,7 @@ namespace MysteryButton
                     playerMalusClips[rng.Next(0, playerMalusClips.Count)]
                 );
                 player.JumpToFearLevel(1.25f);
+                RoundManager.Instance.FlickerLights();
                 logger.LogInfo("Client: Apply max insanity to " + player.playerUsername);
             }
         }
@@ -962,6 +972,55 @@ namespace MysteryButton
             }
         }
         #endregion OpenAllSteamValveHazard
+        
+        #region TurnOffLights
+        
+        [ServerRpc(RequireOwnership = false)]
+        public void TurnOffLightsServerRpc()
+        {
+            BreakerBox breakerBox = FindObjectOfType<BreakerBox>();
+            logger.LogInfo("BreakerBox " + (breakerBox != null ? "found" : "not found"));
+
+            if (breakerBox != null)
+            {
+                bool found = false;
+                int switchIndex = -1;
+                AnimatedObjectTrigger breakerBoxSwitch;
+
+                do
+                {
+                    switchIndex++;
+                    breakerBoxSwitch = breakerBox.breakerSwitches[switchIndex].gameObject
+                        .GetComponent<AnimatedObjectTrigger>();
+                    found |= breakerBoxSwitch.boolValue;
+                } while (!breakerBoxSwitch.boolValue && switchIndex < breakerBox.breakerSwitches.Length - 1);
+
+                if (found)
+                {
+                    TurnOffLightsClientRpc(switchIndex);   
+                }
+            }
+        }
+
+        [ClientRpc]
+        public void TurnOffLightsClientRpc(int switchIndex)
+        {
+            logger.LogInfo("ButtonAI::TurnOffLightsClientRpc");
+
+            BreakerBox breakerBox = FindObjectOfType<BreakerBox>();
+
+            if (breakerBox != null)
+            {
+                AnimatedObjectTrigger breakerBoxSwitch = breakerBox.breakerSwitches[switchIndex].gameObject
+                    .GetComponent<AnimatedObjectTrigger>();
+                breakerBox.breakerSwitches[switchIndex].SetBool("turnedLeft", false);
+                breakerBoxSwitch.boolValue = false;
+                breakerBoxSwitch.setInitialState = false;
+                
+                breakerBox.SwitchBreaker(false);
+            }
+        }
+        #endregion TurnOffLights
         
         #region LeaveEarly
         [ServerRpc(RequireOwnership = false)]
