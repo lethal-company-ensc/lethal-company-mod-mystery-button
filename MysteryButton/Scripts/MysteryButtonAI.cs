@@ -83,7 +83,6 @@ namespace MysteryButton
 
             if (creatureSFX)
             {
-                // creatureSFX.PlayOneShot(enemyType?.overrideVentSFX);
                 creatureSFX.PlayOneShot(buttonAppearClip);
             }
 
@@ -192,11 +191,6 @@ namespace MysteryButton
 
                 if (player != null)
                 {
-                    logger.LogInfo(
-                        "ButtonAI::OnCollideWithPlayer, player EXISTS for collider "
-                        + other.gameObject.name
-                    );
-                    
                     DoEffect(player.name);
                 }
             }
@@ -205,8 +199,6 @@ namespace MysteryButton
         public void DoEffect(string playerName)
         {
             int effect = rng.Next(0, 100);
-            logger.LogInfo("effect=" + effect);
-
             bool isBonus = effect < 50;
 
             if (isBonus)
@@ -230,7 +222,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                RandomPlayerIncreaseInsanityServerRpc();
+                SpawnScrapServerRpc(playerName);
             }
             else
             {
@@ -270,7 +262,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                RandomPlayerIncreaseInsanityServerRpc();
+                SpawnScrapServerRpc(playerName);
             }
             else
             {
@@ -703,34 +695,15 @@ namespace MysteryButton
                     player.transform.position
                     + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * NextFloat(rng, 1f, 1.5f);
 
-                GameObject obj = Instantiate(randomItem.spawnPrefab, position, Quaternion.identity);
+                GameObject obj = Instantiate(randomItem.spawnPrefab, position, Quaternion.identity, StartOfRound.Instance.propsContainer);
 
                 int value = rng.Next(randomItem.minValue, randomItem.maxValue);
-                float weight = randomItem.weight;
 
                 logger.LogInfo(
-                    "Spawning item=" + randomItem.name + ", value=" + value + ", weight=" + weight
+                    "Spawning item=" + randomItem.name + ", value=" + value + ", weight=" + randomItem.weight
                 );
 
-                ScanNodeProperties scan = obj.GetComponent<ScanNodeProperties>();
-                if (scan == null)
-                {
-                    logger.LogInfo(
-                        "No scan found, creating with scrapValue="
-                            + value
-                            + " and subText="
-                            + $"\"Value: ${value}\""
-                    );
-                    scan = obj.AddComponent<ScanNodeProperties>();
-                    scan.scrapValue = value;
-                    scan.subText = $"Value: ${value.ToString()}";
-                    scan.headerText = randomItem.name;
-                }
-
                 obj.GetComponent<GrabbableObject>().fallTime = 0f;
-                obj.GetComponent<GrabbableObject>().scrapValue = value;
-                obj.GetComponent<GrabbableObject>().itemProperties.weight = weight;
-                obj.GetComponent<GrabbableObject>().itemProperties.creditsWorth = value;
                 obj.GetComponent<GrabbableObject>().SetScrapValue(value);
                 obj.GetComponent<NetworkObject>().Spawn();
             }
