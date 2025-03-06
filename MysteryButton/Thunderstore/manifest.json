@@ -1,7 +1,7 @@
 ﻿{
   "name": "Mystery_Button",
   "description": "No one knows what this button does. It could make you rich or bring disastrous and chaotic consequences.",
-  "version_number": "1.0.1",
+  "version_number": "1.1.0",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2100",
     "Evaisa-LethalLib-0.16.2"

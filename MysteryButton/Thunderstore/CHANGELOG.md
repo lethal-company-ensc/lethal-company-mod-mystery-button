@@ -1,6 +1,9 @@
 # v 1.1.0
 
 - Add 2 effects to the button
+- Change node type to Enemy
+- Fix scrap value not showing
+- Fix scrap value 0 due to mod conflict
 
 # v 1.0.0
 
