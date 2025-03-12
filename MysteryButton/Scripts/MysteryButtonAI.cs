@@ -222,27 +222,27 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                SpawnScrapServerRpc(playerName);
+                SpawnScrapServerRpc();
             }
             else
             {
                 if (effect < 30)
                 {
-                    SpawnScrapServerRpc(playerName);
+                    SpawnScrapServerRpc();
                 }
                 else if (effect < 60)
                 {
                     int amount = rng.Next(1, 6);
-                    SpawnScrapServerRpc(playerName, amount);
+                    SpawnScrapServerRpc(amount);
                 }
                 else if (effect < 90)
                 {
-                    SpawnSpecificScrapServerRpc(playerName, 1);
+                    SpawnExpensiveScrapServerRpc(1);
                 }
                 else if (effect < 91)
                 {
                     int amount = rng.Next(1, 11);
-                    SpawnSpecificScrapServerRpc(playerName, amount);
+                    SpawnExpensiveScrapServerRpc(amount);
                 }
                 else if (effect < 99 && canExplodeLandmines)
                 {
@@ -262,7 +262,7 @@ namespace MysteryButton
 
             if (IS_TEST)
             {
-                SpawnScrapServerRpc(playerName);
+                SpawnScrapServerRpc();
             }
             else
             {
@@ -651,48 +651,39 @@ namespace MysteryButton
         #region SpawnScrap
 
         [ServerRpc(RequireOwnership = false)]
-        void SpawnScrapServerRpc(string? entityName, int amount)
+        void SpawnScrapServerRpc(int amount)
         {
             logger.LogInfo("ButtonAI::SpawnScrapServerRpc");
-            SpawnScrap(entityName, null, amount);
+            SpawnScrap(false, amount);
         }
 
         [ServerRpc(RequireOwnership = false)]
-        void SpawnScrapServerRpc(string? entityName)
+        void SpawnScrapServerRpc()
         {
             logger.LogInfo("ButtonAI::SpawnScrapServerRpc");
-            SpawnScrap(entityName, null, 1);
+            SpawnScrap(false, 1);
         }
 
         [ServerRpc(RequireOwnership = false)]
-        void SpawnSpecificScrapServerRpc(string? entityName, int amount)
+        void SpawnExpensiveScrapServerRpc(int amount)
         {
-            logger.LogInfo("ButtonAI::SpawnSpecificScrapServerRpc");
-            List<Item> allScrapList = StartOfRound
-                .Instance.allItemsList.itemsList.Where(
-                    (item) => item.isScrap && item.maxValue > 150
-                )
-                .ToList();
-            SpawnScrap(entityName, allScrapList[rng.Next(0, allScrapList.Count - 1)], amount);
+            logger.LogInfo("ButtonAI::SpawnExpensiveScrapServerRpc");
+            SpawnScrap(true, amount);
         }
 
-        void SpawnScrap(string? entityName, Item? specificScrap, int amount)
+        void SpawnScrap(bool expensiveScrap, int amount)
         {
             List<Item> allScrapList = StartOfRound
-                .Instance.allItemsList.itemsList.Where((item) => item.isScrap)
+                .Instance.allItemsList.itemsList.Where((item) => item.isScrap && (!expensiveScrap || item.maxValue > 150))
                 .ToList();
-            int allItemListSize = allScrapList.Count;
-
-            var player = GetPlayerByNameOrFirstOne(entityName);
 
             for (int i = 0; i < amount; i++)
             {
-                int allItemListIndex = rng.Next(0, allItemListSize);
-                Item randomItem = specificScrap ?? allScrapList[allItemListIndex];
+                Item randomItem = allScrapList[rng.Next(0, allScrapList.Count)];
 
                 float angle = NextFloat(rng, 0, 2f * Mathf.PI);
                 Vector3 position =
-                    player.transform.position
+                    transform.position
                     + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * NextFloat(rng, 1f, 1.5f);
 
                 GameObject obj = Instantiate(randomItem.spawnPrefab, position, Quaternion.identity, StartOfRound.Instance.propsContainer);
@@ -705,8 +696,20 @@ namespace MysteryButton
 
                 obj.GetComponent<GrabbableObject>().fallTime = 0f;
                 obj.GetComponent<GrabbableObject>().SetScrapValue(value);
-                obj.GetComponent<NetworkObject>().Spawn();
+
+                var networkObject = obj.GetComponent<NetworkObject>();
+                networkObject.Spawn();
+                SpawnScrapClientRpc(networkObject.NetworkObjectId, value);
             }
+        }
+
+        [ClientRpc]
+        void SpawnScrapClientRpc(ulong networkObjectId, int value)
+        {
+            var networkObject = NetworkManager.SpawnManager.SpawnedObjects[networkObjectId];
+            var grabbableObject = networkObject.GetComponent<GrabbableObject>();
+            grabbableObject.SetScrapValue(value);
+            grabbableObject.fallTime = 0f;
         }
 
         #endregion SpawnScrap

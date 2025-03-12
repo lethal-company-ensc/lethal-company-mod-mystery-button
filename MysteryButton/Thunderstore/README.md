@@ -45,7 +45,7 @@ After several weeks of beta testing, we decided to share this mod with the commu
                 <th>15%</th>
             </tr>
             <tr>
-                <th>SpawnRareScrap (1)</th>
+                <th>SpawnExpensiveScrap (1)</th>
                 <th>Spawning a scrap with a maximum value of more than $150</th>
                 <th>15%</th>
             </tr>
@@ -110,7 +110,7 @@ After several weeks of beta testing, we decided to share this mod with the commu
                 <th>2%</th>
             </tr>
             <tr>
-                <th>SpawnRareScrap (1 - 10)</th>
+                <th>SpawnExpensiveScrap (1 - 10)</th>
                 <th>Spawning between 1 and 10 scraps with a maximum value of over $150</th>
                 <th>0,5%</th>
             </tr>

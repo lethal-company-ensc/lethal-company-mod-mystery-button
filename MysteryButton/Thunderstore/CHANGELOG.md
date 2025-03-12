@@ -1,3 +1,7 @@
+# v 1.1.1
+
+- Fix scrap value not showing for clients
+
 # v 1.1.0
 
 - Add 2 effects to the button
