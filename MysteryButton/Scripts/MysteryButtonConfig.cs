@@ -35,17 +35,17 @@ public class MysteryButtonConfig
         ConfigEffects = cfg.Bind("Enemy Options",
             "Effects",
             "Good:50,Bad:50",
-            "");
+            "Weight affecting the type of button effect");
         
         ConfigGoodEffects = cfg.Bind("Enemy Options",
             "Good Effects",
             "SpawnOneScrap:30,SpawnMultipleScrap:30,SpawnOneExpensiveScrap:30,SpawnMultipleExpensiveScrap:1,ExplodeLandmines:8,RevivePlayer:1",
-            "");
+            "Weight affecting the type of good effect of the button");
         
         ConfigBadEffects = cfg.Bind("Enemy Options",
             "Bad Effects",
             "StartMeteorShower:5,TeleportPlayerToRandomPosition:15,SwitchPlayersPosition:20,OpenAllSteamValveHazard:10,PlayerDrunkEffect:5,LeaveEarly:1,RandomPlayerIncreaseInsanity:4,BerserkTurrets:10,SpawnOneEnemy:10,SpawnMultipleEnemies:1,TurnOffLights:9,OpenCloseDoors:10",
-            "");
+            "Weight affecting the type of bad effect of the button");
         
         ConfigMaxAmount = cfg.Bind("Enemy Options", 
             "Max Amount",

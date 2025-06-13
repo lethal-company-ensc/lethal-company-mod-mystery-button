@@ -1,3 +1,9 @@
+# v 1.2.0
+
+- Add config for Good/Bad effects
+- Fix scrap spawn on certain floor types
+- Fix teleportation sound only playing if reverse teleporter had been purchased
+
 # v 1.1.1
 
 - Fix scrap value not showing for clients
