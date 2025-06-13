@@ -8,7 +8,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
-namespace MysteryButton
+namespace MysteryButton.Scripts
 {
 	[BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 	[BepInDependency(LethalLib.Plugin.ModGUID)]
@@ -25,7 +25,7 @@ namespace MysteryButton
 		protected void Awake()
 		{
 			Patch();
-			PatchNetcode();
+			PatchNetCode();
 
 			string buttonAscii = "\n";
 			buttonAscii += "*         *     *\n";
@@ -46,14 +46,14 @@ namespace MysteryButton
 				Logger.LogInfo($"Loaded {Bundles.Count} bundles : {string.Join(", ", Bundles)}");
 			}
 			
-			ModConfig = new MysteryButtonConfig(this.Config);
+			ModConfig = new MysteryButtonConfig(Config);
 			
-			AddFromBundle<MysteryButtonAI>(Bundles.First(), "MysteryButton", Enemies.SpawnType.Default);
+			AddFromBundle<MysteryButtonAI>(Bundles.First(), "MysteryButton");
 
 			Logger.LogInfo($"{MyPluginInfo.PLUGIN_GUID} v{MyPluginInfo.PLUGIN_VERSION} has loaded!");
 		}
 
-		protected void Patch()
+		private void Patch()
 		{
 			Harmony ??= new Harmony(MyPluginInfo.PLUGIN_GUID);
 
@@ -62,7 +62,7 @@ namespace MysteryButton
 			Logger.LogDebug("Finished patching!");
 		}
 
-		protected void PatchNetcode()
+		private void PatchNetCode()
 		{
 			var types = Assembly.GetExecutingAssembly().GetTypes();
 			foreach (var type in types)
@@ -79,72 +79,73 @@ namespace MysteryButton
 			}
 		}
 
-		protected void Unpatch()
-		{
-			Logger.LogDebug("Unpatching...");
-			Harmony?.UnpatchSelf();
-			Logger.LogDebug("Finished unpatching!");
-		}
-
-		private void AddBundle(string name)
+		private void AddBundle(string bundleName)
 		{
 			string assemblyPath = Assembly.GetExecutingAssembly().Location;
-			string assemblyDirectory = Path.GetDirectoryName(assemblyPath);
-			string bundlePath = Path.Combine(assemblyDirectory, name);
+			string? assemblyDirectory = Path.GetDirectoryName(assemblyPath);
 
-			AssetBundle bundle = AssetBundle.LoadFromFile(bundlePath);
-			if (bundle == null)
+			if (assemblyDirectory != null)
 			{
-				Logger.LogError($"Failed to load bundle {name}");
+				string bundlePath = Path.Combine(assemblyDirectory, bundleName);
+
+				AssetBundle bundle = AssetBundle.LoadFromFile(bundlePath);
+				if (bundle == null)
+				{
+					Logger.LogError($"Failed to load bundle {bundleName}");
+				}
+				else
+				{
+					Bundles.Add(bundle);
+				}
 			}
 			else
 			{
-				Bundles.Add(bundle);
+				Logger.LogError("Assembly directory not found");
 			}
 		}
 
-		private void AddFromBundle<T>(AssetBundle bundle, string name, Enemies.SpawnType spawnType) where T : EnemyAI
+		private void AddFromBundle<T>(AssetBundle bundle, string modName) where T : EnemyAI
 		{
 			EnemyType enemyType = bundle.LoadAsset<EnemyType>("MysteryButtonET");
 			if (enemyType == null || enemyType.enemyPrefab == null)
 			{
-				Logger.LogError($"Could not load enemy {name} from bundle {bundle.name}.");
+				Logger.LogError($"Could not load enemy {modName} from bundle {bundle.name}.");
 				return;
 			}
 
-			Logger.LogInfo($"Loaded enemy {name} from bundle {bundle.name}.");
+			Logger.LogInfo($"Loaded enemy {modName} from bundle {bundle.name}.");
 			
 			var terminalNode = bundle.LoadAsset<TerminalNode>("MysteryButtonTN");
 			if (terminalNode == null)
 			{
-				Logger.LogError($"Could not load {name} terminal node from {bundle.name}.");
+				Logger.LogError($"Could not load {modName} terminal node from {bundle.name}.");
 				return;
 			}
 			
 			var terminalKeyword = bundle.LoadAsset<TerminalKeyword>("MysteryButtonTK");
 			if (terminalKeyword == null)
 			{
-				Logger.LogError($"Could not load {name} terminal keyword from {bundle.name}.");
+				Logger.LogError($"Could not load {modName} terminal keyword from {bundle.name}.");
 				return;
 			}
 
-			enemyType.enemyPrefab = bundle.LoadAsset<GameObject>($"{name}.prefab");
+			enemyType.enemyPrefab = bundle.LoadAsset<GameObject>($"{modName}.prefab");
 			if (enemyType.enemyPrefab == null)
 			{
-				Logger.LogError($"Could not load enemy prefab {name} from bundle {bundle.name}.");
+				Logger.LogError($"Could not load enemy prefab {modName} from bundle {bundle.name}.");
 				return;
 			}
 
-			Logger.LogInfo($"Loaded enemy {name} prefab from bundle {bundle.name}.");
+			Logger.LogInfo($"Loaded enemy {modName} prefab from bundle {bundle.name}.");
 
 			T enemyAI = enemyType.enemyPrefab.AddComponent<T>();
 			if (enemyAI == null)
 			{
-				Logger.LogError($"Could not attach AI to enemy {name} from {bundle.name}.");
+				Logger.LogError($"Could not attach AI to enemy {modName} from {bundle.name}.");
 				return;
 			}
 
-			Logger.LogInfo($"Attached {typeof(T).Name} script to enemy {name} from {bundle.name}.");
+			Logger.LogInfo($"Attached {typeof(T).Name} script to enemy {modName} from {bundle.name}.");
 			
 			buttonUsedMaterial = bundle.LoadAsset<Material>("ButtonUsedMaterial");
 			if (buttonUsedMaterial == null)
@@ -199,19 +200,19 @@ namespace MysteryButton
 				if (entryParts.Length != 2) {
 					continue;
 				}
-				string name = entryParts[0];
-				int spawnrate;
+				string moonName = entryParts[0];
+				int spawnRate;
 
-				if (!int.TryParse(entryParts[1], out spawnrate)) {
+				if (!int.TryParse(entryParts[1], out spawnRate)) {
 					continue;
 				}
 
-				if (Enum.TryParse<Levels.LevelTypes>(name, true, out Levels.LevelTypes levelType)) {
-					spawnRateByLevelType[levelType] = spawnrate;
-					Logger.LogInfo($"Registered spawn rate for level type {levelType} to {spawnrate}");
+				if (Enum.TryParse(moonName, true, out Levels.LevelTypes levelType)) {
+					spawnRateByLevelType[levelType] = spawnRate;
+					Logger.LogInfo($"Registered spawn rate for level type {levelType} to {spawnRate}");
 				} else {
-					spawnRateByCustomLevelType[name] = spawnrate;
-					Logger.LogInfo($"Registered spawn rate for custom level type {name} to {spawnrate}");
+					spawnRateByCustomLevelType[moonName] = spawnRate;
+					Logger.LogInfo($"Registered spawn rate for custom level type {moonName} to {spawnRate}");
 				}
 			}
 			return (spawnRateByLevelType, spawnRateByCustomLevelType);
