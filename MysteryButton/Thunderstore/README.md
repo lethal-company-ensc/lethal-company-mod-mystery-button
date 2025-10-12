@@ -1,4 +1,4 @@
-<img src="https://img.shields.io/badge/Lethal Company-v69-000" /></a>
+<img src="https://img.shields.io/badge/Lethal Company-v73-000" /></a>
 [![Thunderstore Version](https://img.shields.io/thunderstore/v/Tubbbe/Mystery_Button?style=for-the-badge&logo=thunderstore&logoColor=white)](https://thunderstore.io/c/lethal-company/p/Tubbbe/Mystery_Button/)
 [![Thunderstore Downloads](https://img.shields.io/thunderstore/dt/Tubbbe/Mystery_Button?style=for-the-badge&logo=thunderstore&logoColor=white)](https://thunderstore.io/c/lethal-company/p/Tubbbe/Mystery_Button/)
 
