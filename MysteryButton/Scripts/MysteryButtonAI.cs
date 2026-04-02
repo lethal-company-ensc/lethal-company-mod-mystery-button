@@ -15,6 +15,7 @@ namespace MysteryButton.Scripts
         private static int _cpt = 0;
 
         private const bool IsTest = false;
+        private static NetworkVariable<int> _testIndexEffect = new ();
 
         private static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(
             "MysteryButton.MysteryButtonAI"
@@ -69,7 +70,7 @@ namespace MysteryButton.Scripts
 
         public override void Start()
         {
-            Logger.LogInfo("Start");
+            Logger.LogDebug("Start");
             _isLocalLock = false;
 
             _animator = gameObject.GetComponentInChildren<Animator>();
@@ -78,7 +79,7 @@ namespace MysteryButton.Scripts
             InvokeRepeating ("PlayIdleAnimation", 10f, waitTime);
 
             AudioSource audioSource = gameObject.GetComponent<AudioSource>();
-            Logger.LogInfo("AudioSource is " + (audioSource ? " not null" : "null"));
+            Logger.LogDebug("AudioSource is " + (audioSource ? " not null" : "null"));
             creatureSFX = gameObject.GetComponent<AudioSource>();
 
             AudioClip[] audioClips = enemyType?.audioClips ?? [];
@@ -162,7 +163,7 @@ namespace MysteryButton.Scripts
         {
             base.OnNetworkSpawn();
 
-            Logger.LogInfo("OnNetworkSpawn, IsServer=" + IsServer);
+            Logger.LogDebug("OnNetworkSpawn, IsServer=" + IsServer);
             if (IsServer)
             {
                 _isLock.Value = false;
@@ -170,7 +171,12 @@ namespace MysteryButton.Scripts
             }
             else
             {
-                _isLock.OnValueChanged += OnSomeValueChanged;
+                _isLock.OnValueChanged += OnIsLockChanged;
+
+                if (IsTest && _id == 0)
+                {
+                    _testIndexEffect.OnValueChanged += OnTestIndexChanged;
+                }
             }
         }
 
@@ -179,7 +185,7 @@ namespace MysteryButton.Scripts
             base.OnNetworkDespawn();
             if (!IsServer)
             {
-                _isLock.OnValueChanged -= OnSomeValueChanged;
+                _isLock.OnValueChanged -= OnIsLockChanged;
             }
         }
 
@@ -188,10 +194,16 @@ namespace MysteryButton.Scripts
             InitNetworkVariables();
         }
         
-        private void OnSomeValueChanged(bool previous, bool current)
+        private void OnIsLockChanged(bool previous, bool current)
         {
-            Logger.LogInfo($"Detected NetworkVariable Change: Previous: {previous} | Current: {current}");
+            Logger.LogDebug($"Detected NetworkVariable isLock Change: Previous: {previous} | Current: {current}");
             _isLock.Value = current;
+        }
+        
+        private void OnTestIndexChanged(int previous, int current)
+        {
+            Logger.LogDebug($"Detected NetworkVariable testIndexEffect Change: Previous: {previous} | Current: {current}");
+            _testIndexEffect.Value = current;
         }
 
         private void InitNetworkVariables()
@@ -203,8 +215,22 @@ namespace MysteryButton.Scripts
         [ServerRpc(RequireOwnership = false)]
         public void SetLockServerRpc()
         {
-            Logger.LogInfo("SetLock");
+            Logger.LogDebug("SetLock");
             _isLock.Value = true;
+        }
+        
+        [ServerRpc(RequireOwnership = false)]
+        public void IncrementTestIndexEffectServerRpc()
+        {
+            Logger.LogDebug("IncrementTestIndexEffect");
+            if (_testIndexEffect.Value > 18)
+            {
+                _testIndexEffect.Value = 0;
+            }
+            else
+            {
+                _testIndexEffect.Value += 1;
+            }
         }
 
         public override void OnCollideWithPlayer(Collider other)
@@ -217,13 +243,20 @@ namespace MysteryButton.Scripts
                 _canTurnOffLights = breakerBox && breakerBox.isPowerOn;
                 
                 _isLocalLock = true;
-                Logger.LogInfo("OnCollideWithPlayer, id=" + _id);
+                Logger.LogDebug("OnCollideWithPlayer, id=" + _id);
                 SetLockServerRpc();
                 PlayerControllerB player = other.gameObject.GetComponent<PlayerControllerB>();
 
                 if (player != null)
                 {
-                    DoEffect(player.name);
+                    if (IsTest)
+                    {
+                        DoTestEffect(player.name);
+                    }
+                    else
+                    {
+                        DoEffect(player.name);
+                    }
                 }
             }
         }
@@ -235,16 +268,86 @@ namespace MysteryButton.Scripts
 
             if (isGood)
             {
-                Logger.LogInfo("Good effect");
                 DoGoodEffect(playerName);
             }
             else
             {
-                Logger.LogInfo("Bad effect");
                 DoBadEffect(playerName);
             }
 
             KillButtonServerRpc(isGood);
+        }
+
+        private void DoTestEffect(string playerName)
+        {
+            Logger.LogDebug("TestEffect with index=" + _testIndexEffect.Value);
+            switch (_testIndexEffect.Value)
+            {
+                case 0:
+                    SpawnScrapServerRpc();
+                    break;
+                case 1:
+                    SpawnScrapServerRpc(_rng.Next(1, 6));
+                    break;
+                case 2:
+                    SpawnExpensiveScrapServerRpc(1);
+                    break;
+                case 3:
+                    SpawnExpensiveScrapServerRpc(_rng.Next(1, 11));
+                    break;
+                case 4:
+                    ExplodeLandminesServerRpc();
+                    break;
+                case 5:
+                    PlayerControllerB randomPlayer = GetActivePlayers()
+                        .Where((player) => !player.isPlayerDead)
+                        .Where((player) => player.isPlayerControlled)
+                        .First();
+                    RevivePlayerServerRpc(randomPlayer.playerUsername);
+                    break;
+                case 6:
+                    StartMeteorEventServerRpc();
+                    break;
+                case 7:
+                    TeleportPlayerToRandomPositionServerRpc(playerName);
+                    break;
+                case 8:
+                    SwitchPlayersPositionServerRpc(playerName);
+                    break;
+                case 9:
+                    OpenAllSteamValveHazardServerRpc();
+                    break;
+                case 10:
+                    PlayerDrunkServerRpc();
+                    break;
+                case 11:
+                    TurnOffLightsServerRpc();
+                    break;
+                case 12:
+                    RandomPlayerIncreaseInsanityServerRpc();
+                    break;
+                case 13:
+                    BerserkTurretServerRpc();
+                    break;
+                case 14:
+                    SpawnEnemyServerRpc(1);
+                    break;
+                case 15:
+                    SpawnEnemyServerRpc(_rng.Next(1, 5));
+                    break;
+                case 16:
+                    OpenAllDoorsServerRpc(playerName);
+                    break;
+                case 17:
+                    CloseAllDoorsServerRpc(playerName);
+                    break;
+                case 18:
+                    LeaveEarlyServerRpc();
+                break;
+            }
+
+            IncrementTestIndexEffectServerRpc();
+            KillButtonServerRpc(_testIndexEffect.Value < 7);
         }
 
         private void DoGoodEffect(string playerName)
@@ -252,36 +355,29 @@ namespace MysteryButton.Scripts
             GoodEffectType? selectedEffect = GetRandomEffect(_rng, GoodEffectsWeightSum, GoodEffects, GoodEffectCondition);
             Logger.LogInfo("Good effect=" + selectedEffect);
 
-            if (IsTest)
+            switch (selectedEffect)
             {
-                SpawnScrapServerRpc();
-            }
-            else
-            {
-                switch (selectedEffect)
-                {
-                    case GoodEffectType.SpawnOneScrap:
-                        SpawnScrapServerRpc();
-                        break;
-                    case GoodEffectType.SpawnMultipleScrap:
-                        SpawnScrapServerRpc(_rng.Next(1, 6));
-                        break;
-                    case GoodEffectType.SpawnOneExpensiveScrap:
-                        SpawnExpensiveScrapServerRpc(1);
-                        break;
-                    case GoodEffectType.SpawnMultipleExpensiveScrap:
-                        SpawnExpensiveScrapServerRpc(_rng.Next(1, 11));
-                        break;
-                    case GoodEffectType.ExplodeLandmines:
-                        ExplodeLandminesServerRpc();
-                        break;
-                    case GoodEffectType.RevivePlayer:
-                        RevivePlayerServerRpc(playerName);
-                        break;
-                    default:
-                        SpawnScrapServerRpc();
-                        break;
-                }
+                case GoodEffectType.SpawnOneScrap:
+                    SpawnScrapServerRpc();
+                    break;
+                case GoodEffectType.SpawnMultipleScrap:
+                    SpawnScrapServerRpc(_rng.Next(1, 6));
+                    break;
+                case GoodEffectType.SpawnOneExpensiveScrap:
+                    SpawnExpensiveScrapServerRpc(1);
+                    break;
+                case GoodEffectType.SpawnMultipleExpensiveScrap:
+                    SpawnExpensiveScrapServerRpc(_rng.Next(1, 11));
+                    break;
+                case GoodEffectType.ExplodeLandmines:
+                    ExplodeLandminesServerRpc();
+                    break;
+                case GoodEffectType.RevivePlayer:
+                    RevivePlayerServerRpc(playerName);
+                    break;
+                default:
+                    SpawnScrapServerRpc();
+                    break;
             }
         }
 
@@ -290,68 +386,60 @@ namespace MysteryButton.Scripts
             BadEffectType? selectedEffect = GetRandomEffect(_rng, BadEffectsWeightSum, BadEffects, BadEffectCondition);
             Logger.LogInfo("Bad effect=" + selectedEffect);
 
-            if (IsTest)
-            {
-                SpawnScrapServerRpc();
-            }
-            else
-            {
-                switch (selectedEffect) {
-                    case BadEffectType.StartMeteorShower:
-                        StartMeteorEventServerRpc();
-                        break;
-                    case BadEffectType.TeleportPlayerToRandomPosition:
-                        TeleportPlayerToRandomPositionServerRpc(playerName);
-                        break;
-                    case BadEffectType.SwitchPlayersPosition:
-                        SwitchPlayersPositionServerRpc(playerName);
-                        break;
-                    case BadEffectType.OpenAllSteamValveHazard:
-                        OpenAllSteamValveHazardServerRpc();
-                        break;
-                    case BadEffectType.PlayerDrunkEffect:
-                        PlayerDrunkServerRpc();
-                        break;
-                    case BadEffectType.LeaveEarly:
-                        LeaveEarlyServerRpc();
-                        break;
-                    case BadEffectType.RandomPlayerIncreaseInsanity:
-                        RandomPlayerIncreaseInsanityServerRpc();
-                        break;
-                    case BadEffectType.BerserkTurrets:
-                        BerserkTurretServerRpc();
-                        break;
-                    case BadEffectType.SpawnOneEnemy:
-                        SpawnEnemyServerRpc(1);
-                        break;
-                    case BadEffectType.SpawnMultipleEnemies:
-                        SpawnEnemyServerRpc(_rng.Next(1, 5));
-                        break;
-                    case BadEffectType.TurnOffLights:
-                        TurnOffLightsServerRpc();
-                        break;
-                    case BadEffectType.OpenCloseDoors:
-                        int open = _rng.Next(0, 100);
-                        if (open < 50)
-                        {
-                            OpenAllDoorsServerRpc(playerName);
-                        }
-                        else
-                        {
-                            CloseAllDoorsServerRpc(playerName);
-                        }
-                        break;
-                    default:
-                        TeleportPlayerToRandomPositionServerRpc(playerName);
-                        break;
-                }
+            switch (selectedEffect) {
+                case BadEffectType.StartMeteorShower:
+                    StartMeteorEventServerRpc();
+                    break;
+                case BadEffectType.TeleportPlayerToRandomPosition:
+                    TeleportPlayerToRandomPositionServerRpc(playerName);
+                    break;
+                case BadEffectType.SwitchPlayersPosition:
+                    SwitchPlayersPositionServerRpc(playerName);
+                    break;
+                case BadEffectType.OpenAllSteamValveHazard:
+                    OpenAllSteamValveHazardServerRpc();
+                    break;
+                case BadEffectType.PlayerDrunkEffect:
+                    PlayerDrunkServerRpc();
+                    break;
+                case BadEffectType.LeaveEarly:
+                    LeaveEarlyServerRpc();
+                    break;
+                case BadEffectType.RandomPlayerIncreaseInsanity:
+                    RandomPlayerIncreaseInsanityServerRpc();
+                    break;
+                case BadEffectType.BerserkTurrets:
+                    BerserkTurretServerRpc();
+                    break;
+                case BadEffectType.SpawnOneEnemy:
+                    SpawnEnemyServerRpc(1);
+                    break;
+                case BadEffectType.SpawnMultipleEnemies:
+                    SpawnEnemyServerRpc(_rng.Next(1, 5));
+                    break;
+                case BadEffectType.TurnOffLights:
+                    TurnOffLightsServerRpc();
+                    break;
+                case BadEffectType.OpenCloseDoors:
+                    int open = _rng.Next(0, 100);
+                    if (open < 50)
+                    {
+                        OpenAllDoorsServerRpc(playerName);
+                    }
+                    else
+                    {
+                        CloseAllDoorsServerRpc(playerName);
+                    }
+                    break;
+                default:
+                    TeleportPlayerToRandomPositionServerRpc(playerName);
+                    break;
             }
         }
 
         private T? GetRandomEffect<T>(Random rng, int weightSum, Dictionary<T, int> weightDict, Dictionary<T, bool> conditions) where T : struct
         {
             int effect = rng.Next(0, weightSum);
-            Logger.LogInfo("Effect=" + effect);
 
             T? selectedEffect = null;
             int currentValue = 0;
@@ -385,7 +473,7 @@ namespace MysteryButton.Scripts
         [ClientRpc]
         public void KillButtonClientRpc(bool isGood)
         {
-            Logger.LogInfo("KillButtonClientRpc");
+            Logger.LogDebug("KillButtonClientRpc");
             if (creatureSFX)
             {
                 creatureSFX.Stop();
@@ -430,12 +518,12 @@ namespace MysteryButton.Scripts
         [ClientRpc]
         void PlayerDrunkClientRpc()
         {
-            Logger.LogInfo("PlayerDrunkClientRpc");
+            Logger.LogDebug("PlayerDrunkClientRpc");
             if (StartOfRound.Instance != null)
             {
                 foreach (PlayerControllerB player in GetActivePlayers())
                 {
-                    Logger.LogInfo("Client: Apply effect to " + player.playerUsername);
+                    Logger.LogDebug("Client: Apply effect to " + player.playerUsername);
                     player.drunkness = 5f;
                 }
             }
@@ -446,7 +534,7 @@ namespace MysteryButton.Scripts
         [ServerRpc(RequireOwnership = false)]
         void RevivePlayerServerRpc(string? playerName)
         {
-            Logger.LogInfo("ButtonAI:RevivePlayerServerRpc");
+            Logger.LogDebug("ButtonAI:RevivePlayerServerRpc");
             var player = GetPlayerByNameOrFirstOne(playerName);
             var deadPlayers = StartOfRound
                 .Instance.allPlayerScripts.Where((p) => p.isPlayerDead)
@@ -462,13 +550,13 @@ namespace MysteryButton.Scripts
         [ClientRpc]
         void RevivePlayerClientRpc(string? playerName, string? deadPlayerName)
         {
-            Logger.LogInfo("ButtonAI:RevivePlayerClientRpc");
+            Logger.LogDebug("ButtonAI:RevivePlayerClientRpc");
             StartOfRound instance = StartOfRound.Instance;
             var player = GetPlayerByNameOrFirstOne(playerName);
             var deadPlayer = GetPlayerByNameOrFirstOne(deadPlayerName);
             var deadPlayerIndex = instance.allPlayerScripts.IndexOf(p => p.name == deadPlayer.name);
 
-            Logger.LogInfo(
+            Logger.LogDebug(
                 "Client: Trying to revive "
                     + deadPlayer.playerUsername
                     + " with index="
@@ -592,7 +680,7 @@ namespace MysteryButton.Scripts
         [ClientRpc]
         void RandomPlayerIncreaseInsanityClientRpc()
         {
-            Logger.LogInfo("RandomPlayerIncreaseInsanityClientRpc");
+            Logger.LogDebug("RandomPlayerIncreaseInsanityClientRpc");
             if (StartOfRound.Instance != null)
             {
                 PlayerControllerB[] currentPlayers = GetActivePlayers()
@@ -606,7 +694,7 @@ namespace MysteryButton.Scripts
                 );
                 player.JumpToFearLevel(1.25f);
                 RoundManager.Instance.FlickerLights();
-                Logger.LogInfo("Client: Apply max insanity to " + player.playerUsername);
+                Logger.LogDebug("Client: Apply max insanity to " + player.playerUsername);
             }
         }
         #endregion RandomPlayerIncreaseInsanity
@@ -621,7 +709,7 @@ namespace MysteryButton.Scripts
         [ClientRpc]
         void OpenAllDoorsClientRpc(string? entityName)
         {
-            Logger.LogInfo("OpenAllDoorsClientRpc");
+            Logger.LogDebug("OpenAllDoorsClientRpc");
             var player = GetPlayerByNameOrFirstOne(entityName);
 
             List<DoorLock> doors = FindObjectsOfType<DoorLock>().ToList();
@@ -632,7 +720,7 @@ namespace MysteryButton.Scripts
                 {
                     if (door.isLocked)
                     {
-                        Logger.LogInfo("Unlocking door id=" + door.NetworkObjectId);
+                        Logger.LogDebug("Unlocking door id=" + door.NetworkObjectId);
                         door.isLocked = false;
                         if (door.doorLockSFX && door.unlockSFX)
                         {
@@ -655,11 +743,11 @@ namespace MysteryButton.Scripts
         [ClientRpc]
         void CloseAllDoorsClientRpc(string? entityName)
         {
-            Logger.LogInfo("CloseAllDoorsClientRpc");
+            Logger.LogDebug("CloseAllDoorsClientRpc");
             var player = GetPlayerByNameOrFirstOne(entityName);
 
             List<DoorLock> doors = FindObjectsOfType<DoorLock>().ToList();
-            Logger.LogInfo("CloseAllDoors: " + doors.Count);
+            Logger.LogDebug("CloseAllDoors: " + doors.Count);
             foreach (DoorLock door in doors)
             {
                 if (door.isDoorOpened)
@@ -668,7 +756,7 @@ namespace MysteryButton.Scripts
 
                     if (_rng.Next(0, 10) < 2)
                     {
-                        Logger.LogInfo("Locking door id=" + door.NetworkObjectId);
+                        Logger.LogDebug("Locking door id=" + door.NetworkObjectId);
                         if (door.doorLockSFX && door.unlockSFX)
                         {
                             door.doorLockSFX.PlayOneShot(door.unlockSFX);
@@ -685,14 +773,14 @@ namespace MysteryButton.Scripts
         [ServerRpc(RequireOwnership = false)]
         void ExplodeLandminesServerRpc()
         {
-            Logger.LogInfo("ExplodeLandminesServerRpc");
+            Logger.LogDebug("ExplodeLandminesServerRpc");
             List<Landmine> landmines = FindObjectsOfType<Landmine>()
                 .Where(mine => !mine.hasExploded)
                 .ToList();
-            Logger.LogInfo(landmines.Count + " landmines found");
+            Logger.LogDebug(landmines.Count + " landmines found");
             foreach (var landmine in landmines)
             {
-                Logger.LogInfo("Exploding landmine id=" + landmine.NetworkObjectId);
+                Logger.LogDebug("Exploding landmine id=" + landmine.NetworkObjectId);
                 landmine.ExplodeMineServerRpc();
             }
         }
@@ -703,21 +791,21 @@ namespace MysteryButton.Scripts
         [ServerRpc(RequireOwnership = false)]
         void SpawnScrapServerRpc(int amount)
         {
-            Logger.LogInfo("SpawnScrapServerRpc");
+            Logger.LogDebug("SpawnScrapServerRpc");
             SpawnScrap(false, amount);
         }
 
         [ServerRpc(RequireOwnership = false)]
         void SpawnScrapServerRpc()
         {
-            Logger.LogInfo("SpawnScrapServerRpc");
+            Logger.LogDebug("SpawnScrapServerRpc");
             SpawnScrap(false, 1);
         }
 
         [ServerRpc(RequireOwnership = false)]
         void SpawnExpensiveScrapServerRpc(int amount)
         {
-            Logger.LogInfo("SpawnExpensiveScrapServerRpc");
+            Logger.LogDebug("SpawnExpensiveScrapServerRpc");
             SpawnScrap(true, amount);
         }
 
@@ -740,7 +828,7 @@ namespace MysteryButton.Scripts
 
                 int value = _rng.Next(randomItem.minValue, randomItem.maxValue);
 
-                Logger.LogInfo(
+                Logger.LogDebug(
                     "Spawning item=" + randomItem.name + ", value=" + value + ", weight=" + randomItem.weight
                 );
 
@@ -769,7 +857,7 @@ namespace MysteryButton.Scripts
         [ServerRpc(RequireOwnership = false)]
         void SpawnEnemyServerRpc(int amount)
         {
-            Logger.LogInfo("SpawnEnemyServerRpc, amount=" + amount);
+            Logger.LogDebug("SpawnEnemyServerRpc, amount=" + amount);
             List<SpawnableEnemyWithRarity> enemies = StartOfRound.Instance.currentLevel.Enemies;
             int allEnemiesListSize = enemies.Count;
             
@@ -778,7 +866,7 @@ namespace MysteryButton.Scripts
                 int allEnemiesListIndex = _rng.Next(0, allEnemiesListSize);
                 SpawnableEnemyWithRarity randomEnemy = enemies[allEnemiesListIndex];
 
-                Logger.LogInfo("Spawning enemy=" + randomEnemy.enemyType.name);
+                Logger.LogDebug("Spawning enemy=" + randomEnemy.enemyType.name);
                 
                 GameObject obj = Instantiate(
                     randomEnemy.enemyType.enemyPrefab,
@@ -803,11 +891,11 @@ namespace MysteryButton.Scripts
         [ClientRpc]
         void BerserkTurretClientRpc()
         {
-            Logger.LogInfo("BerserkTurretClientRpc");
+            Logger.LogDebug("BerserkTurretClientRpc");
             
             List<Turret> turrets = FindObjectsOfType<Turret>().ToList();
             
-            Logger.LogInfo(turrets.Count + " turrets found");
+            Logger.LogDebug(turrets.Count + " turrets found");
 
             foreach (var turret in turrets)
             {
@@ -828,7 +916,7 @@ namespace MysteryButton.Scripts
         [ClientRpc]
         void TeleportPlayerToRandomPositionClientRpc(string? playerName)
         {
-            Logger.LogInfo("TeleportPlayerToRandomPositionClientRpc");
+            Logger.LogDebug("TeleportPlayerToRandomPositionClientRpc");
             PlayerControllerB player = GetPlayerByNameOrFirstOne(playerName);
 
             int randomIndex = _rng.Next(0, RoundManager.Instance.insideAINodes.Length);
@@ -855,7 +943,7 @@ namespace MysteryButton.Scripts
         [ClientRpc]
         void TeleportPlayerToPositionClientRpc(string? playerName, Vector3 pos)
         {
-            Logger.LogInfo("TeleportPlayerToPositionClientRpc");
+            Logger.LogDebug("TeleportPlayerToPositionClientRpc");
             PlayerControllerB player = GetPlayerByNameOrFirstOne(playerName);
 
             if ((bool)(UnityEngine.Object)FindObjectOfType<AudioReverbPresets>())
@@ -884,7 +972,7 @@ namespace MysteryButton.Scripts
         [ClientRpc]
         void SwitchPlayersPositionClientRpc(string? playerName)
         {
-            Logger.LogInfo("SwitchPlayerPositionClientRpc");
+            Logger.LogDebug("SwitchPlayerPositionClientRpc");
 
             List<PlayerControllerB> players = GetActivePlayers()
                 .Where((player) => !player.isPlayerDead)
@@ -903,7 +991,7 @@ namespace MysteryButton.Scripts
                 player2 = players[_rng.Next(players.Count)];
             } while (player2.NetworkObjectId == player.NetworkObjectId);
 
-            Logger.LogInfo(
+            Logger.LogDebug(
                 "Switching positions of " + player.playerUsername + " and " + player2.playerUsername
             );
 
@@ -958,7 +1046,7 @@ namespace MysteryButton.Scripts
         [ServerRpc(RequireOwnership = false)]
         public void StartMeteorEventServerRpc()
         {
-            Logger.LogInfo("StartMeteorEventServerRpc");
+            Logger.LogDebug("StartMeteorEventServerRpc");
             
             TimeOfDay instance = TimeOfDay.Instance;
             instance.meteorShowerAtTime = -1f;
@@ -977,13 +1065,13 @@ namespace MysteryButton.Scripts
         [ClientRpc]
         public void OpenAllSteamValveHazardClientRpc()
         {
-            Logger.LogInfo("OpenAllSteamValveHazardClientRpc");
+            Logger.LogDebug("OpenAllSteamValveHazardClientRpc");
 
             List<SteamValveHazard> steamValves = FindObjectsOfType<SteamValveHazard>().ToList();
-            Logger.LogInfo(steamValves.Count + " steamValve found");
+            Logger.LogDebug(steamValves.Count + " steamValve found");
             foreach (var steamValve in steamValves)
             {
-                Logger.LogInfo("Opening steamValve");
+                Logger.LogDebug("Opening steamValve");
                 steamValve.BurstValve();
                 steamValve.CrackValve();
                 steamValve.valveHasBurst = true;
@@ -1000,7 +1088,7 @@ namespace MysteryButton.Scripts
         public void TurnOffLightsServerRpc()
         {
             BreakerBox breakerBox = FindObjectOfType<BreakerBox>();
-            Logger.LogInfo("BreakerBox " + (breakerBox != null ? "found" : "not found"));
+            Logger.LogDebug("BreakerBox " + (breakerBox != null ? "found" : "not found"));
 
             if (breakerBox != null)
             {
@@ -1026,7 +1114,7 @@ namespace MysteryButton.Scripts
         [ClientRpc]
         public void TurnOffLightsClientRpc(int switchIndex)
         {
-            Logger.LogInfo("TurnOffLightsClientRpc");
+            Logger.LogDebug("TurnOffLightsClientRpc");
 
             BreakerBox breakerBox = FindObjectOfType<BreakerBox>();
 
@@ -1047,7 +1135,7 @@ namespace MysteryButton.Scripts
         [ServerRpc(RequireOwnership = false)]
         public void LeaveEarlyServerRpc()
         {
-            Logger.LogInfo("LeaveEarlyServerRpc");
+            Logger.LogDebug("LeaveEarlyServerRpc");
             
             TimeOfDay instance = TimeOfDay.Instance;
             instance.votedShipToLeaveEarlyThisRound = true;
@@ -1108,7 +1196,7 @@ namespace MysteryButton.Scripts
                 if (Enum.TryParse(effectName, true, out T effect)) {
                     effectsRarity[effect] = spawnRate;
                 } else {
-                    Logger.LogWarning($"Effect {effectName} was not recognized");
+                    Logger.LogDebug($"Effect {effectName} was not recognized");
                 }
             }
             return effectsRarity;
