@@ -299,11 +299,7 @@ namespace MysteryButton.Scripts
                     ExplodeLandminesServerRpc();
                     break;
                 case 5:
-                    PlayerControllerB randomPlayer = GetActivePlayers()
-                        .Where((player) => !player.isPlayerDead)
-                        .Where((player) => player.isPlayerControlled)
-                        .First();
-                    RevivePlayerServerRpc(randomPlayer.playerUsername);
+                    RevivePlayerServerRpc(playerName);
                     break;
                 case 6:
                     StartMeteorEventServerRpc();
@@ -950,6 +946,7 @@ namespace MysteryButton.Scripts
                 FindObjectOfType<AudioReverbPresets>()
                     .audioPresets[2]
                     .ChangeAudioReverbForPlayer(player);
+            
             player.isInElevator = false;
             player.isInHangarShipRoom = false;
             player.isInsideFactory = true;
